@@ -1,6 +1,0 @@
-//
-// OLED Demo
-//
-#pragma once
-
-#include "app/application.h"

@@ -2,7 +2,8 @@
 // OLED Demo
 //
 
-#include <adk>
+#include "app/application.h"
+
 #include <cmath>
 
 class DemoApp : public Application {
