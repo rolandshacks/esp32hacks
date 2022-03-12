@@ -11,8 +11,11 @@ class Application {
         explicit Application();
         void run();
 
+    private:
+        virtual void task_init();
+        virtual void task_loop();
+
     public:
-        virtual void loop();
         virtual void stop();
         virtual bool is_running() const;
         virtual bool has_error() const;

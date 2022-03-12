@@ -43,7 +43,25 @@ Display* Application::get_display() {
     return display_;
 }
 
-void Application::loop() {
+void Application::task_init() {
+    display_ = new Display();
+
+    if (!display_->init()) {
+        ESP_LOGE("app", "Task display initialization failure");
+        error_ = true;
+        return;
+    }
+
+    init();
+    if (has_error()) {
+        ESP_LOGE("app", "Task initialization failure");
+        return;
+    }
+
+    ESP_LOGI("app", "Task initialized");
+}
+
+void Application::task_loop() {
 
     running_ = true;
 
@@ -128,7 +146,11 @@ void Application::task_entry(void* pvParameters) {
     ESP_LOGI("app", "Task started");
 
     Application* ptrApp = (Application*) pvParameters;
-    ptrApp->loop();
+
+    ptrApp->task_init();
+    if (!ptrApp->has_error()) {
+        ptrApp->task_loop();
+    }
 
     for (;;) {
         ESP_LOGE("app", "Task aborted unexpectedly");
@@ -139,19 +161,6 @@ void Application::task_entry(void* pvParameters) {
 void Application::run() {
 
     ESP_LOGI("app", "Started");
-
-    display_ = new Display();
-
-    if (!display_->init()) {
-        ESP_LOGE("app", "Application terminated because of display initialization failure");
-        return;
-    }
-
-    init();
-    if (has_error()) {
-        ESP_LOGE("app", "Application terminated because of initialization failure");
-        return;
-    }
 
     ESP_LOGI("app", "Creating task");
     xTaskCreatePinnedToCore(Application::task_entry, "apploop", 2048, (void*) this, 5, nullptr, 1);

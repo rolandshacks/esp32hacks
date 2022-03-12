@@ -13,14 +13,16 @@ public:
 
     void init() {
 
+        LOG_INFO("app", "Init called");
+
         auto display = get_display();
 
         state_.x = 0.0f;
-        state_.vx = 1.0f;
+        state_.vx = 4.0f;
         state_.y = 0.0f;
         state_.vy = 0.0f;
 
-        LOG_INFO("app", "Init called");
+        LOG_INFO("app", "%0.3f %0.3f %0.3f %0.3f",  state_.x, state_.vx, state_.y, state_.vy);
 
         display->select_font(1);
 
@@ -38,75 +40,34 @@ public:
         display->set_page_lock(1);
     }
 
-    void scrolling_demo() {
-
-        auto display = get_display();
-
-        static int vertical_offset = 0;
-
-        int w = display->get_width();
-        int h = display->get_height();
-
-        state_.x += state_.vx;
-        if (state_.x < 0.0f) {
-            state_.x = 0.0f;
-            state_.vx = std::fabs(state_.vx);
-        }
-
-        if (state_.x > 127.0) {
-            state_.x = 127.0;
-            state_.vx = -std::fabs(state_.vx);
-        }
-
-        state_.y += state_.vy;
-        if (state_.y > 63.0) {
-            state_.y = 63.0;
-            state_.vy = -12.0f;
-        }
-
-        state_.vy += 1.5f;
-
-        vertical_offset++;
-        if (vertical_offset >= h) vertical_offset = 0;
-
-        display->set_vertical_offset(vertical_offset);
-        display->draw_hline(0, vertical_offset, w, oled::BLACK);
-        display->draw_hline(0, (vertical_offset + h - 1) % h, w, oled::BLACK);
-        display->draw_hline(state_.x - state_.y/2, (vertical_offset + h - 2) % h, state_.y, oled::WHITE);
-
-        display->refresh();
-
-    }
-
     void update(uint32_t frame_counter, uint32_t cycle_counter) {
 
         auto display = get_display();
 
         display->clear();
 
-        //display->draw_string(60, 0, "Hello", oled::WHITE, oled::BLACK);
-        //display->fill_rectangle(0, 16, display->get_width(), display->get_height(), oled::BLACK);
-
         state_.x += state_.vx;
         if (state_.x < 0.0f) {
             state_.x = 0.0f;
             state_.vx = std::fabs(state_.vx);
         }
 
-        if (state_.x > 127.0) {
-            state_.x = 127.0;
+        if (state_.x > 127.0f) {
+            state_.x = 127.0f;
             state_.vx = -std::fabs(state_.vx);
         }
 
         state_.y += state_.vy;
-        if (state_.y > 63.0) {
-            state_.y = 63.0;
-            state_.vy = -12.0f;
+        if (state_.y > 63.0f) {
+            state_.y = 63.0f;
+            state_.vy = -13.0f;
         }
 
         state_.vy += 1.5f;
 
-        display->draw_pixel((int8_t)state_.x, 63-(int8_t)state_.y, oled::WHITE);
+        //LOG_INFO("app", "%0.3f %0.3f %0.3f %0.3f",  state_.x, state_.vx, state_.y, state_.vy);
+
+        //display->draw_pixel((int8_t)state_.x, 63-(int8_t)state_.y, oled::WHITE);
         display->draw_pixel((int8_t)state_.x, (int8_t)state_.y, oled::WHITE);
 
         display->refresh();
