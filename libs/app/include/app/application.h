@@ -9,7 +9,7 @@ class Application {
 
     public:
         explicit Application();
-        void run();
+        virtual void task_run();
 
     private:
         virtual void task_init();
@@ -23,9 +23,6 @@ class Application {
     public:
         virtual void init();
         virtual void update(uint32_t frame_counter, uint32_t cycle_counter);
-
-    private:
-        static void task_entry(void* pvParameters);
 
     protected:
         uint32_t get_time() const;

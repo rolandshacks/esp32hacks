@@ -151,7 +151,7 @@ void OLED::command_list(const uint8_t *c, uint8_t n) {
 }
 
 bool OLED::init() {
-    
+
     term();
 
     // reset dirty regions
@@ -293,7 +293,7 @@ void OLED::mark_region(int8_t x, int8_t y) {
     auto& page_info = page_info_[page];
 
     if (x < page_info.dirty_left) page_info.dirty_left = x;
-    if (x > page_info.dirty_right) page_info.dirty_right = x;    
+    if (x > page_info.dirty_right) page_info.dirty_right = x;
 
 }
 
@@ -346,7 +346,7 @@ void OLED::mark_region(int8_t x_start, int8_t x_end, int8_t y_start, int8_t y_en
 }
 
 void OLED::clear_regions() {
-    
+
     if (!partial_updates_enabled_) return;
 
     for (int page=0; page<num_pages_; page++) {
@@ -360,7 +360,7 @@ void OLED::clear_regions() {
 
 void OLED::enable_partial_updates(bool enable) {
     partial_updates_enabled_ = enable;
-    if (enable) clear_regions();    
+    if (enable) clear_regions();
 }
 
 bool OLED::is_partial_updates_enabled() const {
@@ -763,6 +763,94 @@ void OLED::select_font(uint8_t idx) {
         font_ = fonts[idx];
 }
 
+void OLED::draw_bitmap(const uint8_t *bitmap, int x, int y, int width, int height, color_t foreground, color_t background) {
+
+    if (bitmap == nullptr)
+        return;
+
+    for (uint8_t j = 0; j < height; ++j) {
+
+        uint8_t line = 0x0;
+
+        for (uint8_t i = 0; i < width; ++i) {
+
+            if (i % 8 == 0) {
+                line = bitmap[(width + 7) / 8 * j + i / 8];  // line data
+            }
+
+            uint8_t pixel_x = (uint8_t) (x + i);
+            uint8_t pixel_y = (uint8_t) (y + j);
+
+            if (line & 0x80) {
+
+                draw_pixel(pixel_x, pixel_y, foreground);
+
+            } else {
+                switch (background) {
+                    case TRANSPARENT:
+                        // Not drawing for transparent background
+                        break;
+                    case WHITE:
+                    case BLACK:
+                        draw_pixel(pixel_x, pixel_y, background);
+                        break;
+                    case INVERT:
+                        // I don't know why I need invert background
+                        break;
+                }
+            }
+            line = line << 1;
+        }
+    }
+}
+
+
+void OLED::draw_masked_bitmap(const uint8_t *bitmap, const uint8_t *mask_bitmap, int x, int y, int width, int height, color_t foreground, color_t background) {
+
+    if (bitmap == nullptr || mask_bitmap == nullptr)
+        return;
+
+    for (uint8_t j = 0; j < height; ++j) {
+
+        uint8_t line = 0x0;
+        uint8_t mask = 0x0;
+
+        for (uint8_t i = 0; i < width; ++i) {
+
+            if (i % 8 == 0) {
+                int ofs = (width + 7) / 8 * j + i / 8;
+                line = bitmap[ofs];  // line data
+                mask = mask_bitmap[ofs];  // mask data
+            }
+
+            if (mask & 0x80) {
+                uint8_t pixel_x = (uint8_t) (x + i);
+                uint8_t pixel_y = (uint8_t) (y + j);
+
+                if (line & 0x80) {
+                    draw_pixel(pixel_x, pixel_y, foreground);
+                } else {
+                    switch (background) {
+                        case TRANSPARENT:
+                            // Not drawing for transparent background
+                            break;
+                        case WHITE:
+                        case BLACK:
+                            draw_pixel(pixel_x, pixel_y, background);
+                            break;
+                        case INVERT:
+                            // I don't know why I need invert background
+                            break;
+                    }
+                }
+            }
+
+            mask = mask << 1;
+            line = line << 1;
+        }
+    }
+}
+
 // return character width
 uint8_t OLED::draw_char(uint8_t x, uint8_t y, unsigned char c, color_t foreground, color_t background) {
     uint8_t i, j;
@@ -899,14 +987,14 @@ void OLED::update_buffer(uint8_t *data, uint16_t length) {
 }
 
 void OLED::start_scroll_horizontal(int start_page, int end_page, bool right, int time_interval) {
-    
+
     command(
         right ? SSD1306_RIGHT_HORIZONTAL_SCROLL : SSD1306_LEFT_HORIZONTAL_SCROLL,
         0x0,
         start_page,
         time_interval,
         end_page,
-        0x0, 
+        0x0,
         0xff);
 
     command(SSD1306_ACTIVATE_SCROLL);

@@ -42,7 +42,7 @@ class OLED {
 	 * @param   type     Panel type
 	 */
     OLED(gpio_num_t scl, gpio_num_t sda, panel_type_t type);
-    
+
     /**
 	 * @brief   Constructor
 	 * @param   scl_pin  SCL Pin
@@ -58,26 +58,26 @@ class OLED {
 	 * @remark  Possible reasons for failure include non-configured panel type, out of memory or I2C not responding
 	 */
     bool init();
-    
+
     /**
 	 * @brief   De-initialize OLED panel, turn off power and free memory
 	 * @return  true if successful
 	 * @remark  Possible reasons for failure include non-configured panel type, out of memory or I2C not responding
 	 */
     void term();
-    
+
     /**
 	 * @brief   Return OLED panel height
 	 * @return  Panel height, or return 0 if failed (panel not initialized)
 	 */
     uint8_t get_width();
-    
+
     /**
 	 * @brief   Return OLED panel height
 	 * @return  Panel height, or return 0 if failed (panel not initialized)
 	 */
     uint8_t get_height();
-    
+
     /**
 	 * @brief   Clear display buffer (fill with black)
 	 */
@@ -102,7 +102,7 @@ class OLED {
 	 * @param   force   force update without dirty region check
 	 */
     void refresh_page(int page, bool force=true);
-    
+
     /**
 	 * @brief   Draw one pixel
 	 * @param   x       X coordinate
@@ -110,7 +110,7 @@ class OLED {
 	 * @param   color   Color of the pixel
 	 */
     void draw_pixel(int8_t x, int8_t y, color_t color);
-    
+
     /**
 	 * @brief   Draw horizontal line
 	 * @param   x       X coordinate or starting (left) point
@@ -119,7 +119,7 @@ class OLED {
 	 * @param   color   Color of the line
 	 */
     void draw_hline(int8_t x, int8_t y, uint8_t w, color_t color);
-    
+
     /**
 	 * @brief   Draw vertical line
 	 * @param   x       X coordinate or starting (top) point
@@ -128,7 +128,7 @@ class OLED {
 	 * @param   color   Color of the line
 	 */
     void draw_vline(int8_t x, int8_t y, uint8_t h, color_t color);
-    
+
     /**
 	 * @brief   Draw a rectangle
 	 * @param   x       X coordinate or starting (top left) point
@@ -139,7 +139,7 @@ class OLED {
 	 */
     void draw_rectangle(int8_t x, int8_t y, uint8_t w, uint8_t h,
                         color_t color);
-    
+
     /**
 	 * @brief   Draw a filled rectangle
 	 * @param   x       X coordinate or starting (top left) point
@@ -150,7 +150,7 @@ class OLED {
 	 */
     void fill_rectangle(int8_t x, int8_t y, uint8_t w, uint8_t h,
                         color_t color);
-    
+
     /**
 	 * @brief   Draw a filled circle
 	 * @param   x0      X coordinate or center
@@ -159,7 +159,7 @@ class OLED {
 	 * @param   color   Color of the circle
 	 */
     void draw_circle(int8_t x0, int8_t y0, uint8_t r, color_t color);
-    
+
     /**
 	 * @brief   Draw a filled circle
 	 * @param   x0      X coordinate or center
@@ -168,13 +168,44 @@ class OLED {
 	 * @param   color   Color of the circle
 	 */
     void fill_circle(int8_t x0, int8_t y0, uint8_t r, color_t color);
-    
+
     /**
 	 * @brief   Select font for drawing
 	 * @param   idx     Font index, see fonts.c
 	 */
     void select_font(uint8_t idx);
-    
+
+    /**
+	 * @brief   Draw monochrome bitmap
+	 * @param   bitmap      Bitmap to be drawn
+	 * @param   x           X position (top-left corner)
+	 * @param   y           Y position (top-left corner)
+	 * @param   width       Width of bitmap
+	 * @param   height      Height of bitmap
+	 * @param   foreground  Pixel color
+	 * @param   background  Background color
+	 */
+    void draw_bitmap(const uint8_t *bitmap,
+                     int x, int y,
+                     int width, int height,
+                     color_t foreground, color_t background);
+
+    /**
+	 * @brief   Draw monochrome bitmap
+	 * @param   bitmap      Bitmap to be drawn
+	 * @param   mask_bitmap Bitmap mask to be used
+	 * @param   x           X position (top-left corner)
+	 * @param   y           Y position (top-left corner)
+	 * @param   width       Width of bitmap
+	 * @param   height      Height of bitmap
+	 * @param   foreground  Pixel color
+	 * @param   background  Background color
+	 */
+    void draw_masked_bitmap(const uint8_t *bitmap, const uint8_t *mask_bitmap,
+                     int x, int y,
+                     int width, int height,
+                     color_t foreground, color_t background);
+
     /**
 	 * @brief   Draw one character using currently selected font
 	 * @param   x           X position of character (top-left corner)
@@ -186,7 +217,7 @@ class OLED {
 	 */
     uint8_t draw_char(uint8_t x, uint8_t y, unsigned char c,
                       color_t foreground, color_t background);
-    
+
     /**
 	 * @brief   Draw string using currently selected font
 	 * @param   x           X position of string (top-left corner)
@@ -198,7 +229,7 @@ class OLED {
 	 */
     uint8_t draw_string(uint8_t x, uint8_t y, const std::string& str,
                         color_t foreground, color_t background);
-    
+
     /**
 	 * @brief   Draw string using currently selected font
 	 * @param   x           X position of string (top-left corner)
@@ -210,7 +241,7 @@ class OLED {
 	 */
     uint8_t draw_string(uint8_t x, uint8_t y, const char* str,
                         color_t foreground, color_t background);
-    
+
     /**
 	 * @brief   Measure width of string with current selected font
 	 * @param   str         String to measure
@@ -349,7 +380,7 @@ class OLED {
     void mark_region(int8_t x_start, int8_t x_end, int8_t y_start, int8_t y_end);
     void set_page_region(int8_t x_start, int8_t x_end, int page);
     void clear_regions();
-    
+
    private:
     I2C* i2c;
     panel_type_t type_;

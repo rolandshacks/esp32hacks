@@ -6,6 +6,18 @@
 
 #include <math.h>
 
+#define TAG "sys"
+
+void user_main(void*);
+
+void app_bootstrap() {
+    ESP_LOGI(TAG, "########################################");
+    ESP_LOGI(TAG, "# ESP32 BOOT                           #");
+    ESP_LOGI(TAG, "########################################");
+    ESP_LOGI(TAG, "creating main task");
+    xTaskCreatePinnedToCore(user_main, "apploop", 2048, nullptr, 5, nullptr, 1);
+}
+
 Application::Application() :
     running_(false),
     error_(false),
@@ -14,54 +26,47 @@ Application::Application() :
     timeofs_ = xTaskGetTickCount() * portTICK_PERIOD_MS;
 }
 
-void Application::stop() {
-    running_ = false;
-}
+void Application::task_run() {
 
-bool Application::is_running() const {
-    return running_;
-}
+    ESP_LOGI(TAG, "task started");
 
-bool Application::has_error() const {
-    return error_;
-}
+    ESP_LOGI(TAG, "initialize main task");
+    task_init();
+    if (!has_error()) {
+        ESP_LOGI(TAG, "dnter main task loop");
+        task_loop();
+    }
 
-void Application::sleep(uint32_t millis) const {
-    vTaskDelay(millis / portTICK_PERIOD_MS);
-}
-
-uint32_t Application::get_time() const {
-    uint32_t t = xTaskGetTickCount() * portTICK_PERIOD_MS;
-    return (t - timeofs_);
-}
-
-float Application::get_timef() const {
-    return (float) get_time() / 1000.0f;
-}
-
-Display* Application::get_display() {
-    return display_;
+    for (;;) {
+        ESP_LOGE(TAG, "main task aborted unexpectedly");
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+    }
 }
 
 void Application::task_init() {
+
+    ESP_LOGV(TAG, "application::task_init()");
+
     display_ = new Display();
 
     if (!display_->init()) {
-        ESP_LOGE("app", "Task display initialization failure");
+        ESP_LOGE(TAG, "display initialization failure");
         error_ = true;
         return;
     }
 
     init();
     if (has_error()) {
-        ESP_LOGE("app", "Task initialization failure");
+        ESP_LOGE(TAG, "application initialization failure");
         return;
     }
 
-    ESP_LOGI("app", "Task initialized");
+    ESP_LOGI(TAG, "application initialized");
 }
 
 void Application::task_loop() {
+
+    ESP_LOGV(TAG, "application::task_loop()");
 
     running_ = true;
 
@@ -70,7 +75,7 @@ void Application::task_loop() {
 
     uint32_t cycle_time_ms = (uint32_t) (1000.0f * display_cycle_time * 25.0f);
 
-    // ESP_LOGI("app", "cycle time: %d (HW cycles/sec: %0.2f)", cycle_time_ms, display_cycles_per_sec);
+    // ESP_LOGI(TAG, "cycle time: %d (HW cycles/sec: %0.2f)", cycle_time_ms, display_cycles_per_sec);
 
     uint32_t start_time_ms = get_time();
     uint32_t frame_counter = 0;
@@ -103,13 +108,13 @@ void Application::task_loop() {
 
         int elapsed_time_ms = get_time() - current_time_ms;
 
-        //ESP_LOGI("run", "elapsed: %d", elapsed_time_ms);
+        //ESP_LOGI(TAG, "elapsed: %d", elapsed_time_ms);
 
         statistics_frame_counter++;
         statistics_value_counter += (uint32_t) elapsed_time_ms;
         if (current_time_ms - statistics_time_ms >= statistics_cycle_time_ms) {
 
-            ESP_LOGI("run", "Avg. cycle time usage: %d/%d ms, frame #%d, cycle #%d",
+            ESP_LOGI(TAG, "avg. cycle time usage: %d/%d ms, frame #%d, cycle #%d",
                 statistics_value_counter/statistics_frame_counter,
                 cycle_time_ms,
                 frame_counter,
@@ -124,44 +129,43 @@ void Application::task_loop() {
         int sleep_time = (cycle_time_ms > elapsed_time_ms) ? cycle_time_ms - elapsed_time_ms : 1;
         sleep(sleep_time);
 
-        //ESP_LOGW("run", "Sleep time: %d", sleep_time);
+        //ESP_LOGW(TAG, "sleep time: %d", sleep_time);
 
         frame_counter++;
     }
 
     running_ = false;
-
 }
 
-void Application::init() {
-    ;
+void Application::stop() {
+    running_ = false;
 }
 
-void Application::update(uint32_t frame_counter, uint32_t cycle_counter) {
-    ;
+bool Application::is_running() const {
+    return running_;
 }
 
-void Application::task_entry(void* pvParameters) {
-
-    ESP_LOGI("app", "Task started");
-
-    Application* ptrApp = (Application*) pvParameters;
-
-    ptrApp->task_init();
-    if (!ptrApp->has_error()) {
-        ptrApp->task_loop();
-    }
-
-    for (;;) {
-        ESP_LOGE("app", "Task aborted unexpectedly");
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
-    }
+bool Application::has_error() const {
+    return error_;
 }
 
-void Application::run() {
-
-    ESP_LOGI("app", "Started");
-
-    ESP_LOGI("app", "Creating task");
-    xTaskCreatePinnedToCore(Application::task_entry, "apploop", 2048, (void*) this, 5, nullptr, 1);
+void Application::sleep(uint32_t millis) const {
+    vTaskDelay(millis / portTICK_PERIOD_MS);
 }
+
+uint32_t Application::get_time() const {
+    uint32_t t = xTaskGetTickCount() * portTICK_PERIOD_MS;
+    return (t - timeofs_);
+}
+
+float Application::get_timef() const {
+    return (float) get_time() / 1000.0f;
+}
+
+Display* Application::get_display() {
+    return display_;
+}
+
+void Application::init() {}
+
+void Application::update(uint32_t frame_counter, uint32_t cycle_counter) {}
