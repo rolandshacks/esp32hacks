@@ -12,9 +12,9 @@ macro(setup_project)
     message("CMAKE_SOURCE_DIR = ${CMAKE_SOURCE_DIR}")
 
     list(APPEND EXTRA_COMPONENT_DIRS
-        ${CMAKE_SOURCE_DIR}/../libs/utils
-        ${CMAKE_SOURCE_DIR}/../libs/app
-        ${CMAKE_SOURCE_DIR}/../libs/oled
+        ${CMAKE_SOURCE_DIR}/../libs/sys
+        ${CMAKE_SOURCE_DIR}/../libs/graphics
+        ${CMAKE_SOURCE_DIR}/../libs/application
     )
 
     get_filename_component(PROJECT_NAME ${CMAKE_CURRENT_SOURCE_DIR} NAME)

@@ -1,0 +1,7 @@
+# clang tidy config
+
+Checks: 'clang-diagnostic-*,clang-analyzer-*,cppcoreguidelines-*,bugprone-*,modernize-*'
+#Checks: 'clang-diagnostic-*,clang-analyzer-*,bugprone-*,modernize-*'
+Checks: '-modernize-use-trailing-return-type'
+Checks: 'readability-identifier-naming'
+WarningsAsErrors: 'true'

@@ -1,0 +1,7 @@
+# clang format config
+
+BasedOnStyle: Google
+IndentWidth: 4
+ColumnLimit: 120
+AllowShortFunctionsOnASingleLine: Empty
+IndentAccessModifiers: true

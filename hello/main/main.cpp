@@ -2,24 +2,21 @@
 // OLED Demo
 //
 
-#include "app/application.h"
+#include "application/application.h"
 
-#include <cmath>
-
-class Hello : public Application {
-
-public:
+class Hello : public application::Application {
+   public:
     explicit Hello() : Application() {}
 
-    void init() {
+    void init() override {
         LOG_INFO("app", "Hello, world!");
     }
 
-    void update(uint32_t frame_counter, uint32_t cycle_counter) {
-        LOG_INFO("app", "Hello, world! (%d)", frame_counter);
+    void update() override {
+        LOG_INFO("app", "Hello, world! (%d)", get_update_counter());
     }
 
-    _NOCOPY(Hello)
+    _NODEFAULTS(Hello)
 };
 
 DECLARE_APP(Hello);
