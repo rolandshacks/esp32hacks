@@ -282,7 +282,7 @@ void Display::clear() {
     mark_region(0, width_ - 1, 0, height_ - 1);
 }
 
-void Display::mark_region(int8_t x, int8_t y) {
+void Display::mark_region(int x, int y) {
     if (!partial_updates_enabled_) return;
 
     if (y < 0 || y >= height_) return;
@@ -295,7 +295,7 @@ void Display::mark_region(int8_t x, int8_t y) {
     if (x > page_info.dirty_right) page_info.dirty_right = x;
 }
 
-void Display::set_page_region(int8_t x_start, int8_t x_end, int page) {
+void Display::set_page_region(int x_start, int x_end, int page) {
     if (!partial_updates_enabled_) return;
 
     if (page < 0 || page >= num_pages_) return;
@@ -312,7 +312,7 @@ void Display::set_page_region(int8_t x_start, int8_t x_end, int page) {
     if (x_end > page_info.dirty_right) page_info.dirty_right = x_end;
 }
 
-void Display::mark_region(int8_t x_start, int8_t x_end, int8_t y) {
+void Display::mark_region(int x_start, int x_end, int y) {
     if (!partial_updates_enabled_) return;
 
     if (y < 0 || y >= height_) return;
@@ -321,13 +321,18 @@ void Display::mark_region(int8_t x_start, int8_t x_end, int8_t y) {
     set_page_region(x_start, x_end, page);
 }
 
-void Display::mark_region(int8_t x_start, int8_t x_end, int8_t y_start, int8_t y_end) {
+void Display::mark_region(int x_start, int x_end, int y_start, int y_end) {
     if (!partial_updates_enabled_) return;
 
     if (y_start >= height_) return;
     if (y_end < 0 || y_end < y_start) return;
     if (y_start < 0) y_start = 0;
     if (y_end >= height_) y_end = height_ - 1;
+
+    if (x_start >= width_) return;
+    if (x_end < 0 || x_end < x_start) return;
+    if (x_start < 0) x_start = 0;
+    if (x_end >= width_) x_end = width_ - 1;
 
     int start_page = y_start / 8;
     int end_page = y_end / 8;
@@ -457,11 +462,14 @@ void Display::refresh_page(int page, bool force) {
 }
 
 void Display::draw_pixel(int8_t x, int8_t y, color_t color) {
-    uint16_t index;
-
     if ((x >= width_) || (x < 0) || (y >= height_) || (y < 0)) return;
+    draw_pixel_raw(x, y, color);
+    mark_region(x, y);
+}
 
-    index = x + (y / 8) * width_;
+void Display::draw_pixel_raw(int8_t x, int8_t y, color_t color) {
+
+    uint16_t index = x + (y / 8) * width_;
     switch (color) {
         case WHITE:
             buffer_[index] |= (1 << (y & 7));
@@ -475,8 +483,6 @@ void Display::draw_pixel(int8_t x, int8_t y, color_t color) {
         default:
             break;
     }
-
-    mark_region(x, y);
 }
 
 void Display::draw_hline(int8_t x, int8_t y, uint8_t w, color_t color) {
@@ -739,8 +745,67 @@ void Display::select_font(uint8_t idx) {
     font_ = FONT_DATA[idx];
 }
 
-void Display::draw_bitmap(const uint8_t *bitmap, int x, int y, int width, int height, color_t foreground,
-                          color_t background) {
+void Display::draw_bitmap(const graphics::bitmap_t* bitmap, int x, int y, bool enable_alpha, color_t foreground, color_t background) {
+
+    if (bitmap == nullptr) return;
+
+    auto pixels = bitmap->pixels;
+    int height = bitmap->height;
+    int width = bitmap->width;
+    bool has_alpha = bitmap->alpha_channel;
+    int bits_per_pixels = has_alpha ? 2 : 1;
+    int bytes_per_line = bitmap->bytes_per_line;
+
+    mark_region(x, x + width - 1, y, y + height - 1);
+
+    for (int j = 0; j < height; ++j) {
+
+        int dest_y = y + j;
+        if (dest_y < 0 || dest_y >= height_) continue;
+        uint8_t pixel_y = (uint8_t) dest_y;
+
+        uint8_t line = 0x0;
+        uint8_t alpha = 0x0;
+
+        for (uint16_t i = 0; i < width; ++i) {
+
+            if (i % 8 == 0) {
+                int ofs = j * bytes_per_line + (i / 8) * bits_per_pixels;
+                line = pixels[ofs];       // pixel channel
+                if (has_alpha) {          // alpha channel
+                    alpha = pixels[ofs+1];
+                }
+            }
+
+            int dest_x = x + i;
+            if (dest_x < 0 || dest_x >= width_) {
+                line <<= 1;
+                if (has_alpha) alpha <<= 1;
+                continue;
+            }
+
+            uint8_t pixel_x = (uint8_t) dest_x;
+
+            if (has_alpha) {
+                if (!enable_alpha || alpha & 0x80) {
+                    auto col = (0x0 != (line & 0x80)) ? foreground : background;
+                    draw_pixel_raw(pixel_x, pixel_y, col);
+                }
+                alpha <<= 1;     // shift alpha register, does not matter in case no alpha...
+            } else {
+                if (line & 0x80) {
+                    draw_pixel_raw(pixel_x, pixel_y, foreground);
+                } else if (background == WHITE || background == BLACK) {
+                    draw_pixel_raw(pixel_x, pixel_y, background);
+                }
+            }
+
+            line <<= 1;       // shift pixel register
+        }
+    }
+}
+
+void Display::draw_bitmap(const uint8_t *bitmap, int x, int y, int width, int height, color_t foreground, color_t background) {
     if (bitmap == nullptr) return;
 
     for (uint8_t j = 0; j < height; ++j) {
@@ -776,8 +841,7 @@ void Display::draw_bitmap(const uint8_t *bitmap, int x, int y, int width, int he
     }
 }
 
-void Display::draw_masked_bitmap(const uint8_t *bitmap, const uint8_t *mask_bitmap, int x, int y, int width, int height,
-                                 color_t foreground, color_t background) {
+void Display::draw_masked_bitmap(const uint8_t *bitmap, const uint8_t *mask_bitmap, int x, int y, int width, int height, color_t foreground, color_t background) {
     if (bitmap == nullptr || mask_bitmap == nullptr) return;
 
     for (uint8_t j = 0; j < height; ++j) {

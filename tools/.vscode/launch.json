@@ -5,16 +5,27 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python: Aktuelle Datei",
+            "name": "run bitmap2cpp",
             "type": "python",
             "request": "launch",
             "program": "${workspaceFolder}/bitmap2cpp.py",
             "console": "integratedTerminal",
             "justMyCode": true,
             "args": [
-                "ball0.png",
-                "out.inc"
+                "-a",
+                "-o",
+                "out.inc",
+                "hello.png",
+                "background.png"
             ]
+        },
+        {
+            "name": "run renderer",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/render_test.py",
+            "console": "integratedTerminal",
+            "justMyCode": true
         }
     ]
 }

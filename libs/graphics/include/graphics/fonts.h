@@ -52,8 +52,6 @@ typedef struct _font_info {
     const uint8_t* bitmap;                     //!< Character bitmap
 } font_info_t;
 
-//#define NUM_FONTS 3  //!< Number of built-in fonts
-
 extern const font_info_t* FONT_DATA[];  //!< Built-in fonts
 extern const size_t FONT_COUNT;                  //!< Number of build-in fonts
 

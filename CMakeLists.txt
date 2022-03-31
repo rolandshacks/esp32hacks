@@ -45,8 +45,9 @@ set (LIBSRC
 )
 
 set (MAINSRC
-    hello/main/main.cpp
+    #hello/main/main.cpp
     #hello_graphics/main/main.cpp
+    bitmaps/main/main.cpp
     #boing_ball/main/main.cpp
     #oscilloscope/main/main.cpp
     #scrolling/main/main.cpp

@@ -3,7 +3,9 @@
 #
 
 import sys
-import png # from pypng
+import os
+import getopt
+import png
 
 HEXCHARS = "0123456789abcdef"
 
@@ -145,10 +147,11 @@ def colorToFloat(c):
 def brightness(r, g, b):
     return (r + g + b) / 3.0
 
-def process(input_file, rect=None, index=0, flag_special_color_filter=False):
+def process(input_file, rect=None, index=None, flag_alpha=False, flag_special_color_filter=False):
     r = png.Reader(input_file)
     width, height, rows, info = r.read()
     bytes_per_pixel = info["planes"]
+    has_alpha = info["alpha"]
     bits_per_pixel = bytes_per_pixel * info["bitdepth"]
     palette = None
     if "palette" in info:
@@ -170,13 +173,18 @@ def process(input_file, rect=None, index=0, flag_special_color_filter=False):
 
         bit = 0
         accumulator = 0
+        alpha_accumulator = 0
         bit_row = []
+
+        if flag_alpha:
+            alpha_row = []
 
         for x in range(rect.left, rect.right):
 
             ofs = x * bytes_per_pixel
 
             visible = False
+            transparent = False
 
             if 24 == bits_per_pixel:
                 r = colorToFloat(row[ofs+0])
@@ -191,6 +199,10 @@ def process(input_file, rect=None, index=0, flag_special_color_filter=False):
                 g = colorToFloat(row[ofs+1])
                 b = colorToFloat(row[ofs+2])
                 visible = brightness(r,g,b) >= 0.5
+                if has_alpha:
+                    a = row[ofs+3]
+                    if a < 128:
+                        transparent = True
             elif 8 == bits_per_pixel or 4 == bits_per_pixel or 2 == bits_per_pixel:
                 if palette:
                     idx = row[ofs]
@@ -199,6 +211,10 @@ def process(input_file, rect=None, index=0, flag_special_color_filter=False):
                     g = col[1]
                     b = col[2]
                     visible = brightness(r,g,b) >= 0.5
+                    if len(col) > 3:
+                        a = col[3]
+                        if a < 128:
+                            transparent = True
                 else:
                     visible = row[ofs] != 0x0
             elif 1 == bits_per_pixel:
@@ -207,45 +223,57 @@ def process(input_file, rect=None, index=0, flag_special_color_filter=False):
             if visible:
                 accumulator += (1 << (7-bit))
 
+            if flag_alpha and not transparent:
+                alpha_accumulator += (1 << (7-bit))
+
             bit += 1
 
             if 8 == bit:
-                bit_row.append(accumulator)
                 bit = 0
+                bit_row.append(accumulator)
                 accumulator = 0
+                if flag_alpha:
+                    bit_row.append(alpha_accumulator)
+                    alpha_accumulator = 0
+
+        if 0 != bit:
+            bit = 0
+            bit_row.append(accumulator)
+            accumulator = 0
+            if flag_alpha:
+                bit_row.append(alpha_accumulator)
+                alpha_accumulator = 0
 
         bit_rows.append(bit_row)
 
         y += 1
 
-    s = to_string(rect.width, rect.height, bit_rows, index)
+    name = os.path.splitext(input_file)[0]
+
+    s = to_string(name, rect.width, rect.height, bit_rows, flag_alpha, index)
 
     return s # , rect.width, rect.height, bit_rows
 
 def format_bits(bits):
     return "0x" + HEXCHARS[int(bits/16)] + HEXCHARS[int(bits%16)]
 
-def to_string(width, height, data, index):
+def to_string(name, width, height, data, flag_alpha, index):
 
     lines = []
 
-    if 0 == index:
-        lines.append("////////////////////////////////////////////////////////////////////////////////")
-        lines.append("// Bitmap data")
-        lines.append("// @generated")
-        lines.append("// clang-format off")
-        lines.append("////////////////////////////////////////////////////////////////////////////////")
-        lines.append("")
+    appendix = f"_{index}" if index else ""
 
     lines.append("////////////////////////////////////////////////////////////////////////////////")
-    lines.append(f"// Bitmap #{index}")
+    lines.append(f"// Bitmap '{name}'")
     lines.append("////////////////////////////////////////////////////////////////////////////////")
 
-    lines.append(f"const int bitmap_width_{index} = {width};")
-    lines.append(f"const int bitmap_height_{index} = {height};")
-    lines.append(f"const int bitmap_size_{index} = {len(data)*len(data[0])};")
+    has_alpha = "true" if flag_alpha else "false"
+    bytes_per_line = len(data[0])
+    bitmap_size = len(data) * bytes_per_line
 
-    lines.append(f"const unsigned char bitmap_{index}[] = {{")
+    bitmap_symbol_name = f"{name}_bitmap_data{appendix}"
+
+    lines.append(f"static const uint8_t {bitmap_symbol_name}[] = {{")
 
     y = 0
     for bit_row in data:
@@ -259,6 +287,15 @@ def to_string(width, height, data, index):
         lines.append(s)
         y += 1
 
+    lines.append("};\n")
+
+    lines.append(f"const graphics::bitmap_t {name}_bitmap_info{appendix} = {{")
+    lines.append(f"    {width},  // width")
+    lines.append(f"    {height},  // height")
+    lines.append(f"    {has_alpha},  // true if alpha channel")
+    lines.append(f"    {bytes_per_line},  // bytes per line")
+    lines.append(f"    {bitmap_size},  // bitmap size")
+    lines.append(f"    {bitmap_symbol_name}  // bitmap data")
     lines.append("};")
     lines.append("\n")
 
@@ -266,24 +303,53 @@ def to_string(width, height, data, index):
 
     return s
 
-def save(filename, s):
+def save(filename, content):
+    lines = []
+    lines.append("////////////////////////////////////////////////////////////////////////////////")
+    lines.append("// Bitmap data")
+    lines.append("// @generated")
+    lines.append("// clang-format off")
+    lines.append("////////////////////////////////////////////////////////////////////////////////")
+    lines.append("\n")
+    header = "\n".join(lines)
+
     with open(filename, "w") as text_file:
-        print(s)
-        text_file.write(s)
+        text_file.write(header)
+        text_file.write(content)
+
+def usage():
+    print("Usage  : bitmap2cpp INPUT OUTPUT")
+    print("")
+    print("INPUT  : Input image file. Currently, only the PNG file format is supported")
+    print("OUTPUT : C++ source file to be generated")
 
 def main():
 
-    if len(sys.argv) < 3:
-        print("Usage  : bitmap2cpp INPUT OUTPUT")
-        print("")
-        print("INPUT  : Input image file. Currently, only the PNG file format is supported")
-        print("OUTPUT : C++ source file to be generated")
-        sys.exit()
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], "hao:", ["alpha", "help", "output="])
+    except getopt.GetoptError:
+        usage()
+        sys.exit(2)
 
-    input_file = sys.argv[1]
-    output_file = sys.argv[2]
-    s = process(input_file)
-    save(output_file, s)
+    output = None
+    alpha = False
+    for o, a in opts:
+        if o in ("-a", "--alpha"):
+            alpha = True
+        if o in ("-h", "--help"):
+            usage()
+            sys.exit()
+        if o in ("-o", "--output"):
+            output = a
+
+    s = ""
+    for arg in args:
+        s += process(arg, None, None, alpha)
+
+    if output:
+        save(output, s)
+    else:
+        print(s)
 
 if __name__ == "__main__":
     main()

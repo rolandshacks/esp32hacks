@@ -10,6 +10,7 @@
 
 #include "base.h"
 #include "fonts.h"
+#include "bitmaps.h"
 #include "sys/i2c.h"
 
 namespace graphics {
@@ -186,8 +187,17 @@ class Display {
          * @param   foreground  Pixel color
          * @param   background  Background color
          */
-        void draw_bitmap(const uint8_t* bitmap, int x, int y, int width, int height, color_t foreground,
-                         color_t background);
+        void draw_bitmap(const uint8_t* bitmap, int x, int y, int width, int height, color_t foreground=WHITE, color_t background=BLACK);
+
+        /**
+         * @brief   Draw monochrome bitmap
+         * @param   bitmap      Bitmap to be drawn
+         * @param   x           X position (top-left corner)
+         * @param   y           Y position (top-left corner)
+         * @param   foreground  Pixel color
+         * @param   background  Background color
+         */
+        void draw_bitmap(const bitmap_t* bitmap, int x, int y, bool enable_alpha=true, color_t foreground=WHITE, color_t background=BLACK);
 
         /**
          * @brief   Draw monochrome bitmap
@@ -201,7 +211,7 @@ class Display {
          * @param   background  Background color
          */
         void draw_masked_bitmap(const uint8_t* bitmap, const uint8_t* mask_bitmap, int x, int y, int width, int height,
-                                color_t foreground, color_t background);
+                                color_t foreground=WHITE, color_t background=BLACK);
 
         /**
          * @brief   Draw one character using currently selected font
@@ -212,7 +222,7 @@ class Display {
          * @param   background  Background color
          * @return  Width of the character
          */
-        uint8_t draw_char(uint8_t x, uint8_t y, int c, color_t foreground, color_t background);
+        uint8_t draw_char(uint8_t x, uint8_t y, int c, color_t foreground=WHITE, color_t background=BLACK);
 
         /**
          * @brief   Draw string using currently selected font
@@ -223,7 +233,7 @@ class Display {
          * @param   background  Background color
          * @return  Width of the string (out-of-display pixels also included)
          */
-        uint8_t draw_string(uint8_t x, uint8_t y, const std::string& str, color_t foreground, color_t background);
+        uint8_t draw_string(uint8_t x, uint8_t y, const std::string& str, color_t foreground=WHITE, color_t background=BLACK);
 
         /**
          * @brief   Draw string using currently selected font
@@ -234,7 +244,7 @@ class Display {
          * @param   background  Background color
          * @return  Width of the string (out-of-display pixels also included)
          */
-        uint8_t draw_string(uint8_t x, uint8_t y, const char* str, color_t foreground, color_t background);
+        uint8_t draw_string(uint8_t x, uint8_t y, const char* str, color_t foreground=WHITE, color_t background=BLACK);
 
         /**
          * @brief   Measure width of string with current selected font
@@ -323,7 +333,6 @@ class Display {
         bool is_partial_updates_enabled() const;
         void set_page_lock(int page, bool lock = true);
         float get_frequency() const;
-
         void set_vertical_offset(int ofs);
 
     private:
@@ -377,10 +386,11 @@ class Display {
         */
         void data(uint8_t d);
 
-        void mark_region(int8_t x, int8_t y);
-        void mark_region(int8_t x_start, int8_t x_end, int8_t y);
-        void mark_region(int8_t x_start, int8_t x_end, int8_t y_start, int8_t y_end);
-        void set_page_region(int8_t x_start, int8_t x_end, int page);
+        void draw_pixel_raw(int8_t x, int8_t y, color_t color);
+        void mark_region(int x, int y);
+        void mark_region(int x_start, int x_end, int y);
+        void mark_region(int x_start, int x_end, int y_start, int y_end);
+        void set_page_region(int x_start, int x_end, int page);
         void clear_regions();
 
     private:

@@ -66,7 +66,6 @@ int Sim::init() {
     }
 
     screen_surface_ = SDL_GetWindowSurface(window_);
-    SDL_FillRect(screen_surface_, NULL, SDL_MapRGB(screen_surface_->format, 0x0, 0x0, 0x0));
 
     buffer_surface_ = SDL_CreateRGBSurface(
         0, 128, 64, 32, 0x0, 0x0, 0x0, 0x0
@@ -133,15 +132,7 @@ void Sim::clearDisplay() {
         return;
     }
 
-    if (0 != SDL_LockSurface(screen_surface_)) {
-        fprintf(stderr, "lock surface failed: %s\n", SDL_GetError());
-        return;
-    }
-
-    auto pixels = screen_surface_->pixels;
-    memset(pixels, 0x18, screen_surface_->pitch * screen_surface_->h);
-
-    SDL_UnlockSurface(screen_surface_);
+    SDL_FillRect(screen_surface_, NULL, SDL_MapRGB(screen_surface_->format, 0x08, 0x22, 0x28));
     SDL_UpdateWindowSurface(window_);
 }
 
@@ -149,6 +140,8 @@ void Sim::updateDisplay() {
     if (nullptr == window_ || nullptr == screen_surface_ || nullptr == buffer_surface_) {
         return;
     }
+
+    SDL_FillRect(screen_surface_, NULL, SDL_MapRGB(screen_surface_->format, 0x08, 0x22, 0x28));
 
     if (0 != SDL_LockSurface(buffer_surface_)) {
         fprintf(stderr, "lock surface failed: %s\n", SDL_GetError());
@@ -186,6 +179,11 @@ void Sim::updateDisplay() {
         w += buffer_surface_->w;
     }
     int h = w * buffer_surface_->h / buffer_surface_->w;
+
+    if (h >= screen_surface_->h) {
+        h = screen_surface_->h;
+        w = h * buffer_surface_->w / buffer_surface_->h;
+    }
 
     SDL_Rect dest_rect { (screen_surface_->w - w) / 2, (screen_surface_->h -h) / 2, w, h };
     if (dest_rect.x < 0) dest_rect.x = 0;

@@ -1,6 +1,9 @@
 # ESP32 Demos
 
-This project contains [ESP32](https://en.wikipedia.org/wiki/ESP32) demos written for the SSD1306 OLED display.
+This project contains [ESP32](https://en.wikipedia.org/wiki/ESP32) demos written for the SSD1306 OLED display
+including an I2C based simulator for the display device to simplify and speed up host based development.
+
+Also included is a simple python script to generate C++ bitmap data from PNG images.
 
 ![ESP32 Demos](screenshots/esp32_boing.gif)
 
@@ -35,6 +38,10 @@ installation guidelines, build and flash.
 
 * Flash binary to device: `idf.py flash`
 
+### Monitor
+
+* Run monitor: `idf.py monitor` (stop it with CTRL+])
+
 ## Notes on Drivers
 
 * You might need to install USB drivers in case you are working on Windows.
@@ -42,7 +49,10 @@ installation guidelines, build and flash.
 ## Used Open Source Software
 
 SSD1306 I2C library for ESP32: https://github.com/imxieyi/esp32-i2c-ssd1306-oled
-
 I used it as a starting point and inspiration, but optimized and extended the library.
+
+SDL library for desktop rendering: https://www.libsdl.org
+If you're on windows, please make sure you put SDL2.dll somewhere on your path.
+On Linux, proper installation should be straight forward.
 
 THANKS for the great work!
