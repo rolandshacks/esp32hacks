@@ -2572,7 +2572,7 @@ const font_char_desc_t glcd_5x7_descriptors[] = {
 };
 
 /* Font information for glcd 5x7 */
-const font_info_t glcd_5x7_font_info = {
+const font_t glcd_5x7_font_info = {
     7,                    /* Character height */
     1,                    /* C */
     0,                    /* Start character */

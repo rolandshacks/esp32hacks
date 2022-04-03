@@ -16,31 +16,33 @@ class BitmapDemo : public application::Application {
     explicit BitmapDemo() : Application() {}
 
     void init() {
-        set_period_ms(50);
+        setPeriod(50);
 
-        auto display = get_display();
-        display->enable_partial_updates(false);
+        auto display = getDisplay();
+        display->setPartialUpdate(false);
         display->clear();
     }
 
     void update() {
-        auto display = get_display();
+        auto display = getDisplay();
 
         const auto& background = background_bitmap_info;
-        display->draw_bitmap(&background, 0, 0, false);
 
-        w = fmod(w + get_delta_time() * 4.0, PI2);
+        //for (int i=0; i<200; i++)
+        display->drawBitmap(&background, 0, 0, false);
+
+        w = fmod(w + getDelta() * 4.0, PI2);
 
         auto x = 20.0 * cos(w);
         auto y = 20.0 * sin(w);
 
         const auto& bitmap = hello_bitmap_info;
-        display->draw_bitmap(
+        display->drawBitmap(
             &bitmap,
-            (display->get_width() - bitmap.width) / 2 + (int) x,
-            (display->get_height() - bitmap.height) / 2 + (int) y);
+            (display->width() - bitmap.width) / 2 + (int) x,
+            (display->height() - bitmap.height) / 2 + (int) y);
 
-        display->refresh();
+        display->update();
     }
 
    private:

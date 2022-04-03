@@ -13,7 +13,7 @@ class Hello : public application::Application {
     }
 
     void update() override {
-        LOG_INFO("app", "Hello, world! (%d)", get_update_counter());
+        LOG_INFO("app", "Hello, world! (%d)", getUpdateCounter());
     }
 
     _NODEFAULTS(Hello)

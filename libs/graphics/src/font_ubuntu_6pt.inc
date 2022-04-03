@@ -1816,7 +1816,7 @@ const font_char_desc_t ubuntu_12pt_char_desc[] = {
 };
 
 /* Font information for Ubuntu 12pt */
-const font_info_t ubuntu_12pt_font_info = {
+const font_t ubuntu_12pt_font_info = {
     16,                    /*  Character height */
     1,                     /*  C */
     ' ',                   /*  Start character */

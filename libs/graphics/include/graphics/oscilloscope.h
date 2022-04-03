@@ -7,8 +7,6 @@
 
 #include "driver/adc.h"
 
-
-
 namespace graphics {
 
 class Display;

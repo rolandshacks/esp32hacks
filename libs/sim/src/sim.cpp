@@ -12,8 +12,16 @@
 
 #include "SDL.h"
 
-// application entry point
-void app_bootstrap();
+/*
+    All examples are compiled into one big binary to make sure changes never break any
+    existing example and to have one additional quality gate.
+    The "DECLARE_SIM_ENTRY()" macro defines the entry point into one example to be used
+    for a specific simulation run.
+    In CMake, ${SIMULATOR_APP} is defined to choose between examples. This is the
+    counter part to the DECLARE_APP() macro each example uses to implement and export
+    the main program entry and task user functions.
+*/
+DECLARE_SIM_ENTRY(SIMULATOR_APP);
 
 using namespace simulator;
 
@@ -81,7 +89,7 @@ int Sim::init() {
 
     while (running_ && !error_) {
         clearDisplay();
-        app_bootstrap();
+        app_main();
     }
 
     return 0;

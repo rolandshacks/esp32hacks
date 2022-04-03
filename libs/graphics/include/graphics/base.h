@@ -7,6 +7,14 @@
 
 namespace graphics {
 
+//! @brief Drawing color
+typedef enum {
+    TRANSPARENT = -1,  //!< Transparent (not drawing)
+    BLACK = 0,         //!< Black (pixel off)
+    WHITE = 1,         //!< White (or blue, yellow, pixel on)
+    INVERT = 2,        //!< Invert pixel (XOR)
+} color_t;
+
 class Point {
    public:
     int8_t x;

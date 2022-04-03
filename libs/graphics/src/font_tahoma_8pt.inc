@@ -1356,7 +1356,7 @@ const font_char_desc_t tahoma_descriptors[] = {
 };
 
 /* Font information for Tahoma 8pt */
-extern const font_info_t tahoma_8pt_font_info = {
+extern const font_t tahoma_8pt_font_info = {
     11,                 /*  Character height */
     1,                  /*  C */
     (uint8_t) ' ',      /*  Start character */

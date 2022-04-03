@@ -43,16 +43,16 @@ typedef struct _font_char_desc {
 } font_char_desc_t;
 
 //! @brief Font information
-typedef struct _font_info {
+typedef struct _font {
     uint8_t height;                            //!< Character height in pixel, all characters have same height
     uint8_t c;                                 //!< Simulation of "C" width in TrueType term, the space between adjacent characters
     uint8_t char_start;                        //!< First character
     uint8_t char_end;                          //!< Last character
-    const font_char_desc_t* char_descriptors;  //! descriptor for each character
+    const font_char_desc_t* char_descriptors;  //!< Descriptor for each character
     const uint8_t* bitmap;                     //!< Character bitmap
-} font_info_t;
+} font_t;
 
-extern const font_info_t* FONT_DATA[];  //!< Built-in fonts
-extern const size_t FONT_COUNT;                  //!< Number of build-in fonts
+extern const font_t* BUILTIN_FONTS[];          //!< Built-in fonts
+extern const size_t BUILTIN_FONT_COUNT;        //!< Number of build-in fonts
 
 }  // namespace graphics

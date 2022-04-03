@@ -1913,7 +1913,7 @@ const font_char_desc_t gamePlayed_12pt_char_desc[] =
 };
 
 /* Font information for Game Played 12pt */
-const font_info_t game_12pt_font_info =
+const font_t game_12pt_font_info =
 {
 	17, /*  Character height */
     1,                  /*  C */

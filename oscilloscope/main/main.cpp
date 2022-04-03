@@ -13,33 +13,35 @@ class OscilloscopeDemo : public application::Application {
 
     void init() override {
 
-        set_period_ms(100);
+        setPeriod(100);
 
         channel_ = ADC1_CHANNEL_4;
         adc1_config_width(ADC_WIDTH_12Bit);
         adc1_config_channel_atten(channel_, ADC_ATTEN_0db);
 
-        auto display = get_display();  // get display reference
+        auto display = getDisplay();  // get display reference
         display->clear();              // clear display
-        display->select_font(1);
-        display->refresh(true);  // update display
+        display->setBuiltinFont(1);
+        display->update(true);  // update display
 
         oscilloscope.init();
     }
 
     void update() override  {
 
-        auto display = get_display();  // get display reference
+        auto display = getDisplay();  // get display reference
 
         display->clear();  // clear display (ignore locked areas)
 
-        display->draw_hline(0, 12, display->get_width(), graphics::WHITE);
+        int top = display->font()->height + 2;
+
+        display->drawHorizontalLine(0, top-1, display->width()-1);
 
         int value = adc1_get_raw(channel_);
         oscilloscope.add(value);
-        oscilloscope.draw(display, 0, 13, 128, 51, true, 2, 1);
+        oscilloscope.draw(display, 0, top, display->width()-1, display->height()-1, true, 2, 1);
 
-        display->refresh(true);  // refresh display
+        display->update(true);  // refresh display
     }
 
    private:

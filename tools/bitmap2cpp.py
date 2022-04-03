@@ -257,6 +257,11 @@ def process(input_file, rect=None, index=None, flag_alpha=False, flag_special_co
 def format_bits(bits):
     return "0x" + HEXCHARS[int(bits/16)] + HEXCHARS[int(bits%16)]
 
+def format_txt(txt, width):
+    if len(txt) < width:
+        txt += " " * (width - len(txt))
+    return txt
+
 def to_string(name, width, height, data, flag_alpha, index):
 
     lines = []
@@ -271,7 +276,7 @@ def to_string(name, width, height, data, flag_alpha, index):
     bytes_per_line = len(data[0])
     bitmap_size = len(data) * bytes_per_line
 
-    bitmap_symbol_name = f"{name}_bitmap_data{appendix}"
+    bitmap_symbol_name = f"{name}_bitmap_pixels{appendix}"
 
     lines.append(f"static const uint8_t {bitmap_symbol_name}[] = {{")
 
@@ -289,13 +294,15 @@ def to_string(name, width, height, data, flag_alpha, index):
 
     lines.append("};\n")
 
-    lines.append(f"const graphics::bitmap_t {name}_bitmap_info{appendix} = {{")
-    lines.append(f"    {width},  // width")
-    lines.append(f"    {height},  // height")
-    lines.append(f"    {has_alpha},  // true if alpha channel")
-    lines.append(f"    {bytes_per_line},  // bytes per line")
-    lines.append(f"    {bitmap_size},  // bitmap size")
-    lines.append(f"    {bitmap_symbol_name}  // bitmap data")
+    output_width = len(bitmap_symbol_name) + 4
+
+    lines.append(f"const graphics::bitmap_t {name}_bitmap{appendix} = {{")
+    lines.append(format_txt(f"    {width},", output_width) + "  // width")
+    lines.append(format_txt(f"    {height},", output_width) + "  // height")
+    lines.append(format_txt(f"    {has_alpha},", output_width) + "  // true if alpha channel")
+    lines.append(format_txt(f"    {bytes_per_line},", output_width) + "  // bytes per line")
+    lines.append(format_txt(f"    {bitmap_size},", output_width) + "  // bitmap size")
+    lines.append(format_txt(f"    {bitmap_symbol_name}", output_width) + "  // pixel data")
     lines.append("};")
     lines.append("\n")
 

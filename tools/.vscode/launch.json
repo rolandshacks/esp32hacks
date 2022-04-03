@@ -5,7 +5,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "run bitmap2cpp",
+            "name": "generate hello bitmaps",
             "type": "python",
             "request": "launch",
             "program": "${workspaceFolder}/bitmap2cpp.py",
@@ -17,6 +17,25 @@
                 "out.inc",
                 "hello.png",
                 "background.png"
+            ]
+        },
+        {
+            "name": "generate boing bitmaps",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/bitmap2cpp.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+                "-a",
+                "-o",
+                "out.inc",
+                "ball0.png",
+                "ball1.png",
+                "ball2.png",
+                "ball3.png",
+                "ball4.png",
+                "ball5.png"
             ]
         },
         {

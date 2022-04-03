@@ -13,6 +13,9 @@ class Display;
 
 namespace application {
 
+template <typename T> void ApplicationEntry();
+
+
 /**
  * Application base
  */
@@ -37,17 +40,29 @@ class Application {
     virtual bool isRunning() const;
     virtual bool hasError() const;
 
+   public:
+    static void bootstrap(void (*task_entry)(void*));
+
    protected:
-    uint32_t get_time() const;
-    float get_timef() const;
-    graphics::Display* get_display();
+    graphics::Display* getDisplay();
+    uint32_t getUpdateCounter() const;
+    void setPeriod(uint32_t period_ms);
+    uint32_t getPeriod() const;
+
+    uint32_t getMillis() const;
+    uint32_t getDeltaMillis() const;
     void sleep(uint32_t millis) const;
-    uint32_t get_delta_ms() const;
-    float get_delta_time() const;
-    uint32_t get_update_counter() const;
-    float get_update_frequency() const;
-    uint32_t get_period_ms() const;
-    void set_period_ms(uint32_t period);
+
+    float getTime() const;
+    float getDelta() const;
+
+   protected:
+    uint32_t getAvgCycleTime() const;
+    uint32_t getAvgUpdatesPerSecond() const;
+    void showStatistics(bool show);
+
+   protected:
+    void renderOverlay();
 
    private:
     bool running_{false};
@@ -55,8 +70,10 @@ class Application {
     uint32_t period_ms_{10};
     uint32_t timeofs_{0};
     uint32_t delta_time_ms_{0};
-    float update_frequency_{0.0f};
     uint32_t update_counter_{0};
+    uint32_t avg_cycle_time_ms_{0};
+    uint32_t avg_updates_per_sec_{0};
+    bool show_stats_{false};
     graphics::Display* display_{nullptr};
     int exit_code_{0};
 

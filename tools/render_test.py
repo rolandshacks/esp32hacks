@@ -1,8 +1,9 @@
 import math
 import pygame
 
-WHITE = (255, 255, 255)
-RED = (255, 26, 1)
+WHITE = (255, 255, 255, 255)
+BLACK = (0, 0, 0, 255)
+BACKGROUND = (0, 0, 0, 0)
 
 def get_lat(phase, i):
     if i == 0:
@@ -57,10 +58,11 @@ def fill_tiles(surface, points, alter):
             p2 = points[i+1][j]
             p3 = points[i+1][j+1]
             p4 = points[i][j+1]
-            pygame.draw.polygon(surface, RED if alter else WHITE, (p1, p2, p3, p4))
+            pygame.draw.polygon(surface, BLACK if alter else WHITE, (p1, p2, p3, p4))
             alter = not alter
 
 def calc_and_draw(surface, phase, scale, x, y):
+    surface.fill(BACKGROUND)
     points = calc_points(phase % 22.5)
     transform(points, scale, x, y)
     fill_tiles(surface, points, phase >= 22.5)
@@ -72,7 +74,7 @@ def init_and_run_loop():
 
     # render buffer
     buffer_size = (ball_size, ball_size)
-    buffer = pygame.Surface(buffer_size)
+    buffer = pygame.Surface(buffer_size, pygame.SRCALPHA, 32)
 
     screen = None # disable on-screen display
     #screen_size = (640, 480)

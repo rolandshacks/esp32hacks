@@ -11,23 +11,9 @@
 #include "base.h"
 #include "fonts.h"
 #include "bitmaps.h"
-#include "sys/i2c.h"
+#include "device.h"
 
 namespace graphics {
-
-//! @brief Drawing color
-typedef enum {
-    TRANSPARENT = -1,  //!< Transparent (not drawing)
-    BLACK = 0,         //!< Black (pixel off)
-    WHITE = 1,         //!< White (or blue, yellow, pixel on)
-    INVERT = 2,        //!< Invert pixel (XOR)
-} color_t;
-
-//! @brief Panel type
-typedef enum {
-    SSD1306_128x64 = 1,  //!< 128x32 panel
-    SSD1306_128x32 = 2   //!< 128x64 panel
-} panel_type_t;
 
 class Display {
     public:
@@ -37,48 +23,24 @@ class Display {
         Display();
 
         /**
-         * @brief   Constructor
-         * @param   scl_pin  SCL Pin
-         * @param   sda_pin  SDA Pin
-         * @param   type     Panel type
-         */
-        Display(gpio_num_t scl, gpio_num_t sda, panel_type_t type);
-
-        /**
-         * @brief   Constructor
-         * @param   scl_pin  SCL Pin
-         * @param   sda_pin  SDA Pin
-         * @param   type     Panel type
-         * @param   address  I2C Address(usually 0x78)
-         */
-        Display(gpio_num_t scl, gpio_num_t sda, panel_type_t type, uint8_t address);
-        /**
          * @brief   Initialize OLED panel
          * @return  true if successful
          * @remark  Possible reasons for failure include non-configured panel type,
-         * out of memory or I2C not responding
+         *          out of memory or I2C not responding
          */
         bool init();
 
         /**
-         * @brief   De-initialize OLED panel, turn off power and free memory
-         * @return  true if successful
-         * @remark  Possible reasons for failure include non-configured panel type,
-         * out of memory or I2C not responding
+         * @brief   Return OLED panel height
+         * @return  Panel height, or return 0 if failed (panel not initialized)
          */
-        void term();
+        int width();
 
         /**
          * @brief   Return OLED panel height
          * @return  Panel height, or return 0 if failed (panel not initialized)
          */
-        uint8_t get_width();
-
-        /**
-         * @brief   Return OLED panel height
-         * @return  Panel height, or return 0 if failed (panel not initialized)
-         */
-        uint8_t get_height();
+        int height();
 
         /**
          * @brief   Clear display buffer (fill with black)
@@ -86,52 +48,70 @@ class Display {
         void clear();
 
         /**
-         * @brief   Refresh display (send display buffer to the panel)
-         *          The program automatically tracks "dirty" regions to minimize
-         * refresh area.
+         * @brief   Set foreground color
+         * @return  Previous foreground color
+         * @param   foreground Color
          */
-        void refresh();
+        color_t setForeground(color_t foreground);
 
         /**
-         * @brief   Refresh display (send display buffer to the panel)
-         * @param   force   The program automatically tracks "dirty" regions to
-         * minimize refresh area. Set #force to true to ignore the dirty region and
-         * refresh the whole screen.
+         * @brief   Get current foreground color
+         * @return   Current foreground color
          */
-        void refresh(bool force);
+        color_t getForeground() const;
 
         /**
-         * @brief   Refresh display page (send display page buffer to the panel)
-         * @param   page    page number
-         * @param   force   force update without dirty region check
+         * @brief   Set background color
+         * @return  Previous background color
+         * @param   background Color
          */
-        void refresh_page(int page, bool force = true);
+        color_t setBackground(color_t background);
+
+        /**
+         * @brief   Get current background color
+         * @return  Current background color
+         */
+        color_t getBackground() const;
 
         /**
          * @brief   Draw one pixel
          * @param   x       X coordinate
          * @param   y       Y coordinate
-         * @param   color   Color of the pixel
          */
-        void draw_pixel(int8_t x, int8_t y, color_t color);
+        void drawPixel(int x, int y);
+
+        /**
+         * @brief   Draw one pixel
+         * @param   x       X coordinate
+         * @param   y       Y coordinate
+         * @param   color   Pixel color
+         */
+        void drawPixel(int x, int y, color_t color);
+
+        /**
+         * @brief   Draw line
+         * @param   x1      X start coordinate
+         * @param   y1      Y start coordinate
+         * @param   x2      X end coordinate
+         * @param   y2      Y end coordinate
+         */
+        void drawLine(int x1, int y1, int x2, int y2);
 
         /**
          * @brief   Draw horizontal line
          * @param   x       X coordinate or starting (left) point
          * @param   y       Y coordinate or starting (left) point
          * @param   w       Line width
-         * @param   color   Color of the line
          */
-        void draw_hline(int8_t x, int8_t y, uint8_t w, color_t color);
+        void drawHorizontalLine(int x, int y, int x2);
 
         /**
          * @brief   Draw vertical line
          * @param   x       X coordinate or starting (top) point
          * @param   y       Y coordinate or starting (top) point
          * @param   h       Line height
-         * @param   color   Color of the line
          */
-        void draw_vline(int8_t x, int8_t y, uint8_t h, color_t color);
+        void drawVerticalLine(int x, int y, int y2);
 
         /**
          * @brief   Draw a rectangle
@@ -139,9 +119,8 @@ class Display {
          * @param   y       Y coordinate or starting (top left) point
          * @param   w       Rectangle width
          * @param   h       Rectangle height
-         * @param   color   Color of the rectangle border
          */
-        void draw_rectangle(int8_t x, int8_t y, uint8_t w, uint8_t h, color_t color);
+        void drawRectangle(int x, int y, int x2, int y2);
 
         /**
          * @brief   Draw a filled rectangle
@@ -149,80 +128,70 @@ class Display {
          * @param   y       Y coordinate or starting (top left) point
          * @param   w       Rectangle width
          * @param   h       Rectangle height
-         * @param   color   Color of the rectangle
          */
-        void fill_rectangle(int8_t x, int8_t y, uint8_t w, uint8_t h, color_t color);
+        void fillRectangle(int x, int y, int x2, int y2);
 
         /**
          * @brief   Draw a filled circle
          * @param   x0      X coordinate or center
          * @param   y0      Y coordinate or center
          * @param   r       Radius
-         * @param   color   Color of the circle
          */
-        void draw_circle(int8_t x0, int8_t y0, uint8_t r, color_t color);
+        void drawCircle(int x0, int y0, int r);
 
         /**
          * @brief   Draw a filled circle
          * @param   x0      X coordinate or center
          * @param   y0      Y coordinate or center
          * @param   r       Radius
-         * @param   color   Color of the circle
          */
-        void fill_circle(int8_t x0, int8_t y0, uint8_t r, color_t color);
+        void fillCircle(int x0, int y0, int r);
 
         /**
-         * @brief   Select font for drawing
+         * @brief   Set font for drawing
+         * @return  Previously selected font
+         * @param   font     Font
+         */
+        const font_t* setFont(const font_t* font);
+
+        /**
+         * @brief   Set font for drawing
+         * @return  Current font
+         */
+        const font_t* font() const;
+
+        /**
+         * @brief   Select built-in font for drawing
+         * @return  Previously selected font
          * @param   idx     Font index, see fonts.c
          */
-        void select_font(uint8_t idx);
+        const font_t* setBuiltinFont(uint8_t idx);
 
         /**
          * @brief   Draw monochrome bitmap
          * @param   bitmap      Bitmap to be drawn
          * @param   x           X position (top-left corner)
          * @param   y           Y position (top-left corner)
-         * @param   width       Width of bitmap
-         * @param   height      Height of bitmap
-         * @param   foreground  Pixel color
-         * @param   background  Background color
          */
-        void draw_bitmap(const uint8_t* bitmap, int x, int y, int width, int height, color_t foreground=WHITE, color_t background=BLACK);
-
-        /**
-         * @brief   Draw monochrome bitmap
-         * @param   bitmap      Bitmap to be drawn
-         * @param   x           X position (top-left corner)
-         * @param   y           Y position (top-left corner)
-         * @param   foreground  Pixel color
-         * @param   background  Background color
-         */
-        void draw_bitmap(const bitmap_t* bitmap, int x, int y, bool enable_alpha=true, color_t foreground=WHITE, color_t background=BLACK);
-
-        /**
-         * @brief   Draw monochrome bitmap
-         * @param   bitmap      Bitmap to be drawn
-         * @param   mask_bitmap Bitmap mask to be used
-         * @param   x           X position (top-left corner)
-         * @param   y           Y position (top-left corner)
-         * @param   width       Width of bitmap
-         * @param   height      Height of bitmap
-         * @param   foreground  Pixel color
-         * @param   background  Background color
-         */
-        void draw_masked_bitmap(const uint8_t* bitmap, const uint8_t* mask_bitmap, int x, int y, int width, int height,
-                                color_t foreground=WHITE, color_t background=BLACK);
+        void drawBitmap(const bitmap_t* bitmap, int x, int y, bool enable_alpha=true);
 
         /**
          * @brief   Draw one character using currently selected font
          * @param   x           X position of character (top-left corner)
          * @param   y           Y position of character (top-left corner)
          * @param   c           The character to draw
-         * @param   foreground  Character color
-         * @param   background  Background color
          * @return  Width of the character
          */
-        uint8_t draw_char(uint8_t x, uint8_t y, int c, color_t foreground=WHITE, color_t background=BLACK);
+        int drawChar(int x, int y, int c);
+
+        /**
+         * @brief   Draw string using currently selected font
+         * @param   x           X position of string (top-left corner)
+         * @param   y           Y position of string (top-left corner)
+         * @param   str         The string to draw
+         * @return  Width of the string (out-of-display pixels also included)
+         */
+        int drawString(int x, int y, const std::string& str);
 
         /**
          * @brief   Draw string using currently selected font
@@ -233,57 +202,21 @@ class Display {
          * @param   background  Background color
          * @return  Width of the string (out-of-display pixels also included)
          */
-        uint8_t draw_string(uint8_t x, uint8_t y, const std::string& str, color_t foreground=WHITE, color_t background=BLACK);
-
-        /**
-         * @brief   Draw string using currently selected font
-         * @param   x           X position of string (top-left corner)
-         * @param   y           Y position of string (top-left corner)
-         * @param   str         The string to draw
-         * @param   foreground  Character color
-         * @param   background  Background color
-         * @return  Width of the string (out-of-display pixels also included)
-         */
-        uint8_t draw_string(uint8_t x, uint8_t y, const char* str, color_t foreground=WHITE, color_t background=BLACK);
+        int drawString(int x, int y, const char* str);
 
         /**
          * @brief   Measure width of string with current selected font
          * @param   str         String to measure
          * @return  Width of the string
          */
-        uint8_t measure_string(const std::string& str);
+        int measureString(const std::string& str);
 
         /**
          * @brief   Measure width of string with current selected font
          * @param   str         String to measure
          * @return  Width of the string
          */
-        uint8_t measure_string(const char* str);
-
-        /**
-         * @brief   Get the height of current selected font
-         * @return  Height of the font (in pixels) or 0 if none font selected
-         */
-        uint8_t get_font_height();
-
-        /**
-         * @brief   Get the "C" value (space between adjacent characters)
-         * @return  "C" value
-         */
-        uint8_t get_font_c();
-
-        /**
-         * @brief   Set normal or inverted display
-         * @param   invert      Invert display?
-         */
-        void invert_display(bool invert); /**
-
-             * @brief   Direct update display buffer
-             * @param   data        Data to fill display buffer, no length check is
-             performed!
-             * @param   length      Length of data
-             */
-        void update_buffer(uint8_t* data, uint16_t length);
+        int measureString(const char* str);
 
         /*!
             @brief  Activate continuous horizontal scrolling.
@@ -299,7 +232,7 @@ class Display {
                     25 frame, 111b – 2 frames)
             @return None (void).
         */
-        void start_scroll_horizontal(int start_page, int end_page, bool right, int time_interval);
+        void startHorizontalScrolling(int start_page, int end_page, bool right, int time_interval);
 
         /*!
             @brief  Activate continuous diagonal scrolling. Plain vertical scroll is not possible.
@@ -321,91 +254,144 @@ class Display {
                     Vertical offset per scrolling step. If zero, plain horizontal scrolling is performed.
             @return None (void).
         */
-        void start_scroll(int start_page, int end_page, int start_row, int end_row, bool right, int time_interval, int vertical_offset);
+        void startDiagonalScrolling(int start_page, int end_page, int start_row, int end_row, bool right, int time_interval, int vertical_offset);
 
         /*!
             @brief  Cease a previously-begun scrolling action.
             @return None (void).
         */
-        void stop_scroll();
-
-        void enable_partial_updates(bool enable = true);
-        bool is_partial_updates_enabled() const;
-        void set_page_lock(int page, bool lock = true);
-        float get_frequency() const;
-        void set_vertical_offset(int ofs);
+        void stopScrolling();
 
     private:
+        /**
+         * @brief   Draw one pixel without clipping and dirty marking
+         * @param   x       X coordinate
+         * @param   y       Y coordinate
+         * @param   color   Color of the pixel
+         */
+        void drawPixelRaw(int x, int y, color_t color);
+
+        /**
+         * @brief   Draw one pixel without dirty marking
+         * @param   x       X coordinate
+         * @param   y       Y coordinate
+         * @param   color   Color of the pixel
+         */
+        void drawPixelClipped(int x, int y, color_t color);
+
         /*!
-            @brief  Send command to SSD1306.
-            @param  c
-                    Command byte
+            @brief  Get mask of pixel
+            @return Pixel bit mask
+        */
+        inline uint8_t getPixelMask(int y) const;
+
+        /*!
+            @brief  Get pixel offset
+            @param  x
+                    X coordinate of pixel
+            @param  y
+                    Y coordinate of pixel
+            @return Pixel offset
+        */
+        inline uint16_t getPixelOffset(int x, int y) const;
+
+    public:
+        /*!
+            @brief  Get display device interface
+            @return Display device interface
+        */
+        Device* device();
+
+    public:
+        enum update_state_t {
+            NO_UPDATE_NEEDED = 0x0,     //< no need to update display
+            UPDATE_NEEDED = 0x1,        //< update needed, there are dirty pages
+            FORCED_UPDATE = 0x2         //< full update of all pages requested
+        };
+
+        /**
+         * @brief   Update display (send display buffer to the panel)
+         *          The program automatically tracks "dirty" regions to minimize
+         *          refresh area.
+         */
+        void update();
+
+        /**
+         * @brief   Refresh display (send display buffer to the panel)
+         * @param   force   The program automatically tracks "dirty" regions to
+         *          minimize refresh area. Set #force to true to ignore the dirty region and
+         *          refresh the whole screen.
+         */
+        void update(bool force);
+
+        /**
+         * @brief   Perform actual device refresh. If deferred update is enabled,
+         *          this is automatically done by the application after each update
+         *          cycle.
+         */
+        void refresh();
+
+        /**
+         * @brief  Set update status
+         * @param  update_state Update status
+         * @return None (void).
+         */
+        void setUpdateState(update_state_t update_state);
+
+        /**
+         * @brief  Get update status
+         * @return Update status
+         */
+        update_state_t getUpdateState() const;
+
+        /**
+         * @brief  Set deferred update mode. If deferred, the application updates the
+         *         display after each update cycle in case dirty pages exist.
+         * @param  deferred_update Enable or disable deferred update mode
+         * @return None (void).
+         */
+        void setDeferredUpdate(bool deferred_update);
+
+        /**
+         * @brief  Get deferred update enable flag.
+         * @return Deferred update enable flag.
+         */
+        bool getDeferredUpdate() const;
+
+        /*!
+            @brief  Enable partial update.
+            @param  enable
+                    Enable or disable partial updates to avoid display data transfer
             @return None (void).
         */
-        void command(uint8_t c);
+        void setPartialUpdate(bool enable = true);
 
         /*!
-            @brief  Send commands to SSD1306.
-            @param  c0
-                    Command byte
-            @param  c1
-                    Command byte, if < 0 it will not be sent.
-            @param  c2
-                    Command byte, if < 0 it will not be sent.
-            @param  c3
-                    Command byte, if < 0 it will not be sent.
-            @param  c4
-                    Command byte, if < 0 it will not be sent.
-            @param  c5
-                    Command byte, if < 0 it will not be sent.
-            @param  c6
-                    Command byte, if < 0 it will not be sent.
-            @param  c7
-                    Command byte, if < 0 it will not be sent.
-            @param  c8
-                    Command byte, if < 0 it will not be sent.
+            @brief  Get partial update flag.
+            @return Enable status of partial updates
+        */
+        bool getPartialUpdate() const;
+
+        /*!
+            @brief  Lock display memory page.
+            @param  page
+                    Memory page number
+            @param  lock
+                    Lock status on or off
             @return None (void).
         */
-        void command(int c0, int c1, int c2 = -1, int c3 = -1, int c4 = -1, int c5 = -1, int c6 = -1, int c7 = -1, int c8 = -1);
+        void lockPage(int page, bool lock=true);
 
-        /*!
-            @brief  Issue list of commands to SSD1306, same rules as above re:
-           transactions.
-            @param  c
-                    Byte sequence
-            @param  n
-                    Number of bytes
-        */
-        void command_list(const uint8_t* c, uint8_t n);
-
-        /*!
-            @brief  Send data to SSD1306.
-            @param  d
-                    Data byte
-            @return None (void).
-        */
-        void data(uint8_t d);
-
-        void draw_pixel_raw(int8_t x, int8_t y, color_t color);
-        void mark_region(int x, int y);
-        void mark_region(int x_start, int x_end, int y);
-        void mark_region(int x_start, int x_end, int y_start, int y_end);
-        void set_page_region(int x_start, int x_end, int page);
-        void clear_regions();
 
     private:
-        sys::I2C* i2c;                  // I2C connection
-        panel_type_t type_;             // panel type
-        uint8_t address_;               // I2C address
-        uint8_t* buffer_;               // display buffer
-        uint16_t buffer_size_;          // display buffer size
-        uint8_t width_;                 // panel width (128)
-        uint8_t height_;                // panel height (32 or 64)
-        uint8_t num_pages_;             // number of pages (4 or 8)
-        const font_info_t* font_;       // current font
-        bool partial_updates_enabled_;  // enable dirty regions handling
-        float frequency_;               // display frequency
-        Page page_info_[8];             // page_info
+        Device* device_{nullptr};                               // display device;
+        uint8_t width_{0};                                      // panel width (128)
+        uint8_t height_{0};                                     // panel height (32 or 64)
+        const font_t* font_{nullptr};                           // current font
+        update_state_t update_state_{NO_UPDATE_NEEDED};         // update state
+        bool deferred_update_{false};                           // deferred update
+        color_t foreground_{WHITE};                             // foreground color
+        color_t background_{BLACK};                             // background color
 
     public:
         Display(const Display&) = delete;
@@ -413,6 +399,8 @@ class Display {
         Display& operator=(const Display&) = delete;
         Display& operator=(const Display&&) = delete;
         ~Display() = default;
+
+    public:
 };
 
 }  // namespace graphics

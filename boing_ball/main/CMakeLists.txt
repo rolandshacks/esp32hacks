@@ -1,5 +1,5 @@
 
 idf_component_register(
-    SRCS "bitmaps.cpp" "main.cpp"
+    SRCS "bitmaps.inc" "main.cpp"
     REQUIRES application graphics
 )
