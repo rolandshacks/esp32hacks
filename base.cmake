@@ -14,6 +14,7 @@ macro(setup_project)
     list(APPEND EXTRA_COMPONENT_DIRS
         ${CMAKE_SOURCE_DIR}/../libs/sys
         ${CMAKE_SOURCE_DIR}/../libs/graphics
+        ${CMAKE_SOURCE_DIR}/../libs/graphics3d
         ${CMAKE_SOURCE_DIR}/../libs/application
     )
 

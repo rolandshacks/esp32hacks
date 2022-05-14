@@ -63,7 +63,15 @@
         "xlocmes": "cpp",
         "xloctime": "cpp",
         "xstddef": "cpp",
-        "*.inc": "cpp"
+        "*.inc": "cpp",
+        "array": "cpp",
+        "condition_variable": "cpp",
+        "coroutine": "cpp",
+        "list": "cpp",
+        "unordered_map": "cpp",
+        "mutex": "cpp",
+        "shared_mutex": "cpp",
+        "xhash": "cpp"
     },
     "lldb.displayFormat": "auto",
     "lldb.showDisassembly": "auto",

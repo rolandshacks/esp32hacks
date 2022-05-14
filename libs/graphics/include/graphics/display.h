@@ -1,26 +1,29 @@
 //
-// SSD1306 OLED Display Controller
+// SSD1306 OLED Display
 //
 #pragma once
 
 #include <stddef.h>
 #include <stdlib.h>
-
 #include <string>
 
-#include "base.h"
-#include "fonts.h"
-#include "bitmaps.h"
-#include "device.h"
+#include "graphics/base.h"
+#include "graphics/device.h"
 
 namespace graphics {
 
 class Display {
-    public:
+    public: // Generic methods
         /**
          * @brief   Constructor
          */
         Display();
+
+        /*!
+            @brief  Get display device interface
+            @return Display device interface
+        */
+        Device* device();
 
         /**
          * @brief   Initialize OLED panel
@@ -42,36 +45,76 @@ class Display {
          */
         int height();
 
-        /**
-         * @brief   Clear display buffer (fill with black)
-         */
-        void clear();
+    public: // Colors
 
         /**
          * @brief   Set foreground color
          * @return  Previous foreground color
          * @param   foreground Color
          */
-        color_t setForeground(color_t foreground);
+        Color setForeground(Color foreground);
 
         /**
          * @brief   Get current foreground color
          * @return   Current foreground color
          */
-        color_t getForeground() const;
+        Color getForeground() const;
 
         /**
          * @brief   Set background color
          * @return  Previous background color
          * @param   background Color
          */
-        color_t setBackground(color_t background);
+        Color setBackground(Color background);
 
         /**
          * @brief   Get current background color
          * @return  Current background color
          */
-        color_t getBackground() const;
+        Color getBackground() const;
+
+    private: // Low-level drawing
+
+        /*!
+            @brief  Get mask of pixel
+            @return Pixel bit mask
+        */
+        inline uint8_t getPixelMask(int y) const;
+
+        /*!
+            @brief  Get pixel offset
+            @param  x
+                    X coordinate of pixel
+            @param  y
+                    Y coordinate of pixel
+            @return Pixel offset
+        */
+        inline uint16_t getPixelOffset(int x, int y) const;
+
+        /**
+         * @brief   Draw one pixel without dirty marking
+         * @param   x       X coordinate
+         * @param   y       Y coordinate
+         * @param   color   Color of the pixel
+         */
+        void drawPixelClipped(int x, int y, Color color);
+
+        /**
+         * @brief   Draw one pixel without clipping and dirty marking
+         * @param   x       X coordinate
+         * @param   y       Y coordinate
+         * @param   color   Color of the pixel
+         */
+        void drawPixelRaw(int x, int y, Color color);
+
+
+    public: // Drawing
+
+
+        /**
+         * @brief   Clear display buffer (fill with black)
+         */
+        void clear();
 
         /**
          * @brief   Draw one pixel
@@ -86,16 +129,7 @@ class Display {
          * @param   y       Y coordinate
          * @param   color   Pixel color
          */
-        void drawPixel(int x, int y, color_t color);
-
-        /**
-         * @brief   Draw line
-         * @param   x1      X start coordinate
-         * @param   y1      Y start coordinate
-         * @param   x2      X end coordinate
-         * @param   y2      Y end coordinate
-         */
-        void drawLine(int x1, int y1, int x2, int y2);
+        void drawPixel(int x, int y, Color color);
 
         /**
          * @brief   Draw horizontal line
@@ -114,20 +148,29 @@ class Display {
         void drawVerticalLine(int x, int y, int y2);
 
         /**
+         * @brief   Draw line
+         * @param   x1      X start coordinate
+         * @param   y1      Y start coordinate
+         * @param   x2      X end coordinate
+         * @param   y2      Y end coordinate
+         */
+        void drawLine(int x1, int y1, int x2, int y2);
+
+        /**
          * @brief   Draw a rectangle
-         * @param   x       X coordinate or starting (top left) point
-         * @param   y       Y coordinate or starting (top left) point
-         * @param   w       Rectangle width
-         * @param   h       Rectangle height
+         * @param   x       X start coordinate
+         * @param   y       Y start coordinate
+         * @param   x2      X end coordinate
+         * @param   y2      Y end coordinate
          */
         void drawRectangle(int x, int y, int x2, int y2);
 
         /**
          * @brief   Draw a filled rectangle
-         * @param   x       X coordinate or starting (top left) point
-         * @param   y       Y coordinate or starting (top left) point
-         * @param   w       Rectangle width
-         * @param   h       Rectangle height
+         * @param   x       X start coordinate
+         * @param   y       Y start coordinate
+         * @param   x2      X end coordinate
+         * @param   y2      Y end coordinate
          */
         void fillRectangle(int x, int y, int x2, int y2);
 
@@ -147,33 +190,27 @@ class Display {
          */
         void fillCircle(int x0, int y0, int r);
 
+    public: // Text and Fonts
+
+        /**
+         * @brief   Get current font
+         * @return  Current font
+         */
+        const Font* font() const;
+
         /**
          * @brief   Set font for drawing
          * @return  Previously selected font
          * @param   font     Font
          */
-        const font_t* setFont(const font_t* font);
-
-        /**
-         * @brief   Set font for drawing
-         * @return  Current font
-         */
-        const font_t* font() const;
+        const Font* setFont(const Font* font);
 
         /**
          * @brief   Select built-in font for drawing
          * @return  Previously selected font
          * @param   idx     Font index, see fonts.c
          */
-        const font_t* setBuiltinFont(uint8_t idx);
-
-        /**
-         * @brief   Draw monochrome bitmap
-         * @param   bitmap      Bitmap to be drawn
-         * @param   x           X position (top-left corner)
-         * @param   y           Y position (top-left corner)
-         */
-        void drawBitmap(const bitmap_t* bitmap, int x, int y, bool enable_alpha=true);
+        const Font* setBuiltinFont(uint8_t idx);
 
         /**
          * @brief   Draw one character using currently selected font
@@ -217,6 +254,50 @@ class Display {
          * @return  Width of the string
          */
         int measureString(const char* str);
+
+        /**
+         * @brief   Get descriptor of char
+         * @param   c         Character to get descriptor
+         * @return  Char descriptor
+         */
+        const FontCharDescriptor* getFontCharDescriptor(char c) const;
+
+    public: // Bitmaps
+
+        /**
+         * @brief   Draw bitmap
+         * @param   bitmap       Bitmap to be drawn
+         * @param   x            X position (top-left corner)
+         * @param   y            Y position (top-left corner)
+         * @param   enable_alpha Enable or disable alpha
+         */
+        void drawBitmap(const Bitmap* bitmap, int x, int y, bool enable_alpha=true);
+
+        /**
+         * @brief   Draw bitmap
+         * @param   bitmap       Bitmap to be drawn
+         * @param   src_rect     Source rectangle
+         * @param   x            X position (top-left corner)
+         * @param   y            Y position (top-left corner)
+         * @param   enable_alpha Enable or disable alpha
+         */
+        void drawBitmap(const Bitmap* bitmap,
+                        const Rectangle* src_rect,
+                        int x, int y, bool enable_alpha=true);
+
+        /**
+         * @brief   Draw stretch bitmap
+         * @param   bitmap       Bitmap to be drawn
+         * @param   src_rect     Source rectangle
+         * @param   src_rect     Destination rectangle
+         * @param   enable_alpha Enable or disable alpha
+         */
+        void drawStretchBitmap(const Bitmap* bitmap,
+                               const Rectangle& src_rect,
+                               const Rectangle& dest_rect,
+                               bool enable_alpha=true);
+
+    public: // Scrolling
 
         /*!
             @brief  Activate continuous horizontal scrolling.
@@ -262,47 +343,7 @@ class Display {
         */
         void stopScrolling();
 
-    private:
-        /**
-         * @brief   Draw one pixel without clipping and dirty marking
-         * @param   x       X coordinate
-         * @param   y       Y coordinate
-         * @param   color   Color of the pixel
-         */
-        void drawPixelRaw(int x, int y, color_t color);
-
-        /**
-         * @brief   Draw one pixel without dirty marking
-         * @param   x       X coordinate
-         * @param   y       Y coordinate
-         * @param   color   Color of the pixel
-         */
-        void drawPixelClipped(int x, int y, color_t color);
-
-        /*!
-            @brief  Get mask of pixel
-            @return Pixel bit mask
-        */
-        inline uint8_t getPixelMask(int y) const;
-
-        /*!
-            @brief  Get pixel offset
-            @param  x
-                    X coordinate of pixel
-            @param  y
-                    Y coordinate of pixel
-            @return Pixel offset
-        */
-        inline uint16_t getPixelOffset(int x, int y) const;
-
-    public:
-        /*!
-            @brief  Get display device interface
-            @return Display device interface
-        */
-        Device* device();
-
-    public:
+    public: // Display update
         enum update_state_t {
             NO_UPDATE_NEEDED = 0x0,     //< no need to update display
             UPDATE_NEEDED = 0x1,        //< update needed, there are dirty pages
@@ -331,18 +372,19 @@ class Display {
          */
         void refresh();
 
-        /**
-         * @brief  Set update status
-         * @param  update_state Update status
-         * @return None (void).
-         */
-        void setUpdateState(update_state_t update_state);
+        /*!
+            @brief  Enable partial update.
+            @param  enable
+                    Enable or disable partial updates to avoid display data transfer
+            @return None (void).
+        */
+        void setPartialUpdate(bool enable = true);
 
-        /**
-         * @brief  Get update status
-         * @return Update status
-         */
-        update_state_t getUpdateState() const;
+        /*!
+            @brief  Get partial update flag.
+            @return Enable status of partial updates
+        */
+        bool getPartialUpdate() const;
 
         /**
          * @brief  Set deferred update mode. If deferred, the application updates the
@@ -358,19 +400,18 @@ class Display {
          */
         bool getDeferredUpdate() const;
 
-        /*!
-            @brief  Enable partial update.
-            @param  enable
-                    Enable or disable partial updates to avoid display data transfer
-            @return None (void).
-        */
-        void setPartialUpdate(bool enable = true);
+        /**
+         * @brief  Set update status
+         * @param  update_state Update status
+         * @return None (void).
+         */
+        void setUpdateState(update_state_t update_state);
 
-        /*!
-            @brief  Get partial update flag.
-            @return Enable status of partial updates
-        */
-        bool getPartialUpdate() const;
+        /**
+         * @brief  Get update status
+         * @return Update status
+         */
+        update_state_t getUpdateState() const;
 
         /*!
             @brief  Lock display memory page.
@@ -382,16 +423,60 @@ class Display {
         */
         void lockPage(int page, bool lock=true);
 
+    public: // Advanced rendering support
+
+        /**
+         * @brief   Get dithered color
+         * @param   x           X coordinate
+         * @param   y           Y coordinate
+         * @param   intensity   Color intensity (0..255)
+         * @return  Returns 1 in case the pixel should be drawn and 0 otherwise
+         */
+        static int getDitheredColor(int x, int y, int intensity);
+
+        /**
+         * @brief   Draw dithered horizontal line
+         * @param   x           X start coordinate
+         * @param   y           Y start coordinate
+         * @param   x2          X end coordinate
+         * @param   intensity   Color intensity (0..255)
+         */
+        void drawDitheredHorizontalLine(int x, int y, int x2, int intensity);
+
+        /**
+         * @brief   Draw dithered horizontal line
+         * @param   x           X start coordinate
+         * @param   y           Y start coordinate
+         * @param   x2          X end coordinate
+         * @param   pattern     Repeating bit pattern
+         */
+        void drawPatternHorizontalLine(int x, int y, int x2, uint32_t pattern);
+
+        /**
+         * @brief   Draw a dithered filled rectangle
+         * @param   x           X start coordinate
+         * @param   y           Y start coordinate
+         * @param   x2          X end coordinate
+         * @param   y2          Y end coordinate
+         * @param   intensity   Color intensity (0..255)
+         */
+        void fillDitheredRectangle(int x, int y, int x2, int y2, int intensity);
+
+        void drawTriangle(int x1, int y1, int x2, int y2, int x3, int y3);
+
+        void fillTriangle(int x1, int y1, int x2, int y2, int x3, int y3);
+
+        void fillDitheredTriangle(int x1, int y1, int x2, int y2, int x3, int y3, int intensity);
 
     private:
-        Device* device_{nullptr};                               // display device;
-        uint8_t width_{0};                                      // panel width (128)
-        uint8_t height_{0};                                     // panel height (32 or 64)
-        const font_t* font_{nullptr};                           // current font
-        update_state_t update_state_{NO_UPDATE_NEEDED};         // update state
-        bool deferred_update_{false};                           // deferred update
-        color_t foreground_{WHITE};                             // foreground color
-        color_t background_{BLACK};                             // background color
+        Device* device_{nullptr};                             // display device;
+        uint8_t width_{0};                                    // panel width (128)
+        uint8_t height_{0};                                   // panel height (32 or 64)
+        const Font* font_{nullptr};                           // current font
+        update_state_t update_state_{NO_UPDATE_NEEDED};       // update state
+        bool deferred_update_{false};                         // deferred update
+        Color foreground_{WHITE};                             // foreground color
+        Color background_{BLACK};                             // background color
 
     public:
         Display(const Display&) = delete;
@@ -399,8 +484,6 @@ class Display {
         Display& operator=(const Display&) = delete;
         Display& operator=(const Display&&) = delete;
         ~Display() = default;
-
-    public:
 };
 
 }  // namespace graphics

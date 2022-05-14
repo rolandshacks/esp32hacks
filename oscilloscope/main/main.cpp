@@ -13,7 +13,7 @@ class OscilloscopeDemo : public application::Application {
 
     void init() override {
 
-        setPeriod(100);
+        setPeriod(40);
 
         channel_ = ADC1_CHANNEL_4;
         adc1_config_width(ADC_WIDTH_12Bit);

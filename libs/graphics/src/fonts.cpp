@@ -1,10 +1,7 @@
-/*
- * oled_fonts.cpp
- *
- *  Created on: Jan 3, 2015
- *      Author: Baoshi
- */
-#include "graphics/fonts.h"
+//
+// Fonts
+//
+#include "graphics/base.h"
 
 namespace graphics {
 
@@ -13,7 +10,7 @@ namespace graphics {
 #include "font_ubuntu_6pt.inc"
 #include "font_game_12pt.inc"
 
-const font_t* BUILTIN_FONTS[] = {
+const Font* BUILTIN_FONTS[] = {
     &glcd_5x7_font_info,
     &tahoma_8pt_font_info,
     &ubuntu_12pt_font_info,
@@ -22,4 +19,4 @@ const font_t* BUILTIN_FONTS[] = {
 
 const size_t BUILTIN_FONT_COUNT = sizeof(BUILTIN_FONTS) / sizeof(BUILTIN_FONTS[0]);
 
-}  // namespace graphics
+}  // namespace

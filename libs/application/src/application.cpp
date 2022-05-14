@@ -20,7 +20,7 @@ Application::Application() {
 void Application::bootstrap(void (*task_entry)(void*)) {
     ESP_LOGI(TAG, "%s", bootmsg);
     ESP_LOGI(TAG, "creating main task");
-    xTaskCreatePinnedToCore(task_entry, "apploop", 2048, nullptr, 5, nullptr, 1);
+    xTaskCreatePinnedToCore(task_entry, "apploop", 1024*16, nullptr, 5, nullptr, 1);
 }
 
 uint32_t Application::getUpdateCounter() const {

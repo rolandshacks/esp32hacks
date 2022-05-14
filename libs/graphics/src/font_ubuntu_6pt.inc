@@ -1717,7 +1717,7 @@ const uint8_t ubuntu_12pt_bitmaps[] = {
 
 /* Character descriptors for Ubuntu 12pt */
 /* { [Char width in bits], [Offset into ubuntu_12ptCharBitmaps in bytes] } */
-const font_char_desc_t ubuntu_12pt_char_desc[] = {
+const FontCharDescriptor ubuntu_12pt_char_desc[] = {
     {2, 0},     /*   */
     {1, 16},    /* ! */
     {4, 32},    /* " */
@@ -1816,7 +1816,7 @@ const font_char_desc_t ubuntu_12pt_char_desc[] = {
 };
 
 /* Font information for Ubuntu 12pt */
-const font_t ubuntu_12pt_font_info = {
+const Font ubuntu_12pt_font_info = {
     16,                    /*  Character height */
     1,                     /*  C */
     ' ',                   /*  Start character */

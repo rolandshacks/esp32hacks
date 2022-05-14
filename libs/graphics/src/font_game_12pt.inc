@@ -1813,7 +1813,7 @@ const uint8_t gamePlayed_12pt_bitmaps[] =
 
 /* Character descriptors for Game Played 12pt */
 /* { [Char width in bits], [Offset into gamePlayed_12ptCharBitmaps in bytes] } */
-const font_char_desc_t gamePlayed_12pt_char_desc[] =
+const FontCharDescriptor gamePlayed_12pt_char_desc[] =
 {
 	{2, 0}, 		/*   */
 	{2, 17}, 		/* ! */
@@ -1913,7 +1913,7 @@ const font_char_desc_t gamePlayed_12pt_char_desc[] =
 };
 
 /* Font information for Game Played 12pt */
-const font_t game_12pt_font_info =
+const Font game_12pt_font_info =
 {
 	17, /*  Character height */
     1,                  /*  C */

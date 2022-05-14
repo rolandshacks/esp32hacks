@@ -1,13 +1,87 @@
 # ESP32 Demos
 
+![platform: esp32|win-64](img/platforms.svg)
+![libs: SDL2](img/libs.svg)
+![dev: emulator](img/dev.svg)
+![license: apache](img/license.svg)
+
 This project contains [ESP32](https://en.wikipedia.org/wiki/ESP32) demos written for the SSD1306 OLED display
 including an I2C based simulator for the display device to simplify and speed up host based development.
 
-Also included is a simple python script to generate C++ bitmap data from PNG images.
+Also included are tools to generate 2D and 3D graphics data.
 
-![ESP32 Demos](screenshots/esp32_boing.gif)
+<table><tr>
+  <td style="padding: 20px; padding-right: 40px;"><img src="img/esp32_boing.gif" height=96px></td>
+  <td style="padding: 20px; padding-right: 40px;"><img src="img/esp32_3ddemo.gif" height=96px></td>
+  <td style="padding: 20px;"><img src="img/esp32_retro.gif" height=96px></td>
+</tr></table>
+
+## Included Demos
+
+### Hello
+
+This is the classic "Hello, world!" example. Doesn't create display output, just uses the debug log.
+
+### Hello Graphics
+
+Graphical version of "Hello, world!". Shows some graphics library capabilities.
+
+### Bitmap Demo
+
+Shows advanced bitmap rendering with transparency and alpha keying.
+
+### Scrolling Demo
+
+Shows scrolling capabilities of the display including partial static areas.
+
+### Oscilloscope Demo
+
+Real-time oscilloscope for rendering live I/O data.
+
+### Amiga Boing Ball
+
+A tribute to the classic Amiga Boing Ball demo from CES 1984. Optimized frame
+rates using memory page locking.
+
+### Retro Demo
+
+Some well known elements of retro demos, such as scrolling text, copper bars,
+zooming bitmaps and a nice 3D starfield as found on home computers of the 80s.
+
+### 3D Demo
+
+Shows real-time shaded 3D graphics on monochrome display using stationary
+dithering for triangle rasterization based on a simplified error diffusion
+algorithm.
+
+## Included Class Library
+
+The following aspects are covered by the included class library:
+
+* Application fundamentals
+* Graphics fundamentals
+* System abstraction (minimalistic)
+* Simulation support (x86-based development)
+
+## Included Tools
+
+### Bitmap-To-Cpp
+
+Converts PNG bitmaps to C++ array data. Supports alpha channel to generate
+alpha masks for advanced blitting modes.
+
+### Render Test
+
+Generates PNG bitmaps using pygame to render to offscreen buffers, then store
+the data to a file. Can be used as starting point for custom graphics.
+
+### Blender Export
+
+Exports vertices and indices of a selected Blender mesh object.
 
 ## Hardware Setup
+
+This is the hardware setup used to develop the example:
 
 * ESP32 board: Espressif ESP32 IOT ESP32-DEVKITC 32D ESP32-WROOM-32D
 * Monochrome OLED display: AZDelivery AZOLED12864-1000, ean: 7091358562602

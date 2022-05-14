@@ -7,21 +7,12 @@
 #include <stdint.h>
 
 #include "esp_log.h"
+#include "graphics/bits.h"
 
-#define MAX_I2C_LIST_LEN 32
-
-#define SSD1306_RIGHT_HORIZONTAL_SCROLL 0x26               ///< Init rt scroll
-#define SSD1306_LEFT_HORIZONTAL_SCROLL 0x27                ///< Init left scroll
-#define SSD1306_VERTICAL_AND_RIGHT_HORIZONTAL_SCROLL 0x29  ///< Init diag scroll
-#define SSD1306_VERTICAL_AND_LEFT_HORIZONTAL_SCROLL 0x2A   ///< Init diag scroll
-#define SSD1306_DEACTIVATE_SCROLL 0x2E                     ///< Stop scroll
-#define SSD1306_ACTIVATE_SCROLL 0x2F                       ///< Start scroll
-#define SSD1306_SET_VERTICAL_SCROLL_AREA 0xA3              ///< Set scroll range
-
-#define SSD1306_DEFAULT_ADDRESS 0x78
-#define SSD1306_DEFAULT_PIN_SDA_DATA GPIO_NUM_21
-#define SSD1306_DEFAULT_PIN_SCL_CLOCK GPIO_NUM_22
-#define SSD1306_DEFAULT_TYPE graphics::SSD1306_128x64
+static const uint8_t DEFAULT_GPIO_ADDRESS = 0x78;
+static const int DEFAULT_GPIO_PIN_SDA_DATA = 21;
+static const int DEFAULT_GPIO_PIN_SCL_CLOCK = 22;
+static const graphics::PanelType DEFAULT_PANEL_TYPE = graphics::PanelType::SSD1306_128x64;
 
 /// Oscillator frequency table for 0xD5 command
 static const uint16_t OSC_FREQUENCY_TABLE[] = {270, 279, 289, 298, 314, 326, 337, 352,
@@ -29,10 +20,9 @@ static const uint16_t OSC_FREQUENCY_TABLE[] = {270, 279, 289, 298, 314, 326, 337
 
 using namespace graphics;
 
-Device::Device(gpio_num_t scl, gpio_num_t sda, panel_type_t type, uint8_t address)
+Device::Device(int scl, int sda, PanelType type, uint8_t address)
     : i2c(nullptr),
       type_(type),
-      address_(address),
       buffer_(nullptr),
       buffer_size_(0),
       width_(0),
@@ -41,14 +31,14 @@ Device::Device(gpio_num_t scl, gpio_num_t sda, panel_type_t type, uint8_t addres
       partial_updates_enabled_(true),
       frequency_(0.0f) {
 
-    i2c = new sys::I2C(scl, sda);
+    i2c = new sys::I2C(scl, sda, address);
 
     switch (type) {
-        case SSD1306_128x64:
+        case PanelType::SSD1306_128x64:
             width_ = 128;
             height_ = 64;
             break;
-        case SSD1306_128x32:
+        case PanelType::SSD1306_128x32:
             width_ = 128;
             height_ = 32;
             break;
@@ -57,95 +47,21 @@ Device::Device(gpio_num_t scl, gpio_num_t sda, panel_type_t type, uint8_t addres
     this->num_pages_ = height_ / 8;
 }
 
-Device::Device(gpio_num_t scl, gpio_num_t sda, panel_type_t type)
-    : Device(scl, sda, type, SSD1306_DEFAULT_ADDRESS) {}
+Device::Device(int scl, int sda, PanelType type)
+    : Device(scl, sda, type, DEFAULT_GPIO_ADDRESS) {}
 
-Device::Device() : Device(SSD1306_DEFAULT_PIN_SCL_CLOCK, SSD1306_DEFAULT_PIN_SDA_DATA, SSD1306_DEFAULT_TYPE) {}
+Device::Device() : Device(DEFAULT_GPIO_PIN_SCL_CLOCK, DEFAULT_GPIO_PIN_SDA_DATA, DEFAULT_PANEL_TYPE) {}
 
 void Device::data(uint8_t d) {
-    bool ret;
-    i2c->start();
-    ret = i2c->write(address_);
-    if (!ret) {  // NACK
-        i2c->stop();
-    }
-    i2c->write(0x40);  // Co = 0, D/C = 1
-    i2c->write(d);
-    i2c->stop();
+    i2c->sendData(d);
+}
+
+void Device::command(Command c) {
+    command(static_cast<uint8_t>(c));
 }
 
 void Device::command(uint8_t c) {
-    bool ret;
-    i2c->start();
-    ret = i2c->write(address_);
-    if (!ret) {  // NACK
-        i2c->stop();
-    }
-
-    i2c->write(0x00);  // Co = 0, D/C = 0 (set control and data bit plus 6
-                       // following bits to zero)
-    i2c->write(c);
-    i2c->stop();
-}
-
-void Device::command(int c0, int c1, int c2, int c3, int c4, int c5, int c6, int c7, int c8) {
-    bool ret;
-    i2c->start();
-    ret = i2c->write(address_);
-    if (!ret) {  // NACK
-        i2c->stop();
-    }
-
-    i2c->write(0x00);  // Co = 0, D/C = 0
-
-    i2c->write((uint8_t)c0);
-    if (c1 >= 0) i2c->write((uint8_t)c1);
-    if (c2 >= 0) i2c->write((uint8_t)c2);
-    if (c3 >= 0) i2c->write((uint8_t)c3);
-    if (c4 >= 0) i2c->write((uint8_t)c4);
-    if (c5 >= 0) i2c->write((uint8_t)c5);
-    if (c6 >= 0) i2c->write((uint8_t)c6);
-    if (c7 >= 0) i2c->write((uint8_t)c7);
-    if (c8 >= 0) i2c->write((uint8_t)c8);
-
-    i2c->stop();
-}
-
-void Device::command_list(const uint8_t *c, uint8_t n) {
-    bool ret;
-    i2c->start();
-    ret = i2c->write(address_);
-    if (!ret) {  // NACK
-        i2c->stop();
-        return;
-    }
-
-    i2c->write(0x00);  // Co = 0, D/C = 0
-
-    uint8_t bytesOut = 1;
-
-    while (n--) {
-        if (bytesOut >= MAX_I2C_LIST_LEN) {
-            i2c->stop();
-
-            i2c->start();
-            ret = i2c->write(address_);
-            if (!ret) {  // NACK
-                i2c->stop();
-                return;
-            }
-
-            i2c->write(0x00);  // Co = 0, D/C = 0
-            bytesOut = 1;
-        }
-
-        i2c->write(*c);
-        c++;
-
-        bytesOut++;
-    }
-
-    i2c->stop();
+    i2c->sendControl(c);
 }
 
 bool Device::init() {
@@ -162,26 +78,21 @@ bool Device::init() {
         return false;
     }
 
-    // Panel initialization
     // Try send I2C address check if the panel is connected
-    i2c->start();
-    if (!i2c->write(address_)) {
-        i2c->stop();
+    bool devicePresent = i2c->sendEmpty();
+    if (!devicePresent) {
         ESP_LOGE("graphics", "OLED I2C bus not responding.");
-
         free(buffer_);
         buffer_ = nullptr;
-
         return false;
     }
-    i2c->stop();
 
     // Now we assume all sending will be successful
-    command(0xae);  // SSD1306_DISPLAYOFF
+    command(Command::SetDisplayOff);
 
     int osc_frequency_flags = 0x8; // Oscillator frequency code (RESET = 0b1000/0x8)
     int clock_divide_ratio = 0x0;  // Power-on default from spec (RESET = 0b0000/0x0)
-    command(0xd5);                 // SSD1306_SETDISPLAYCLOCKDIV (0x80 default)
+    command(Command::SetDisplayClockDivider);
     uint8_t display_clock_div = (osc_frequency_flags << 4) | clock_divide_ratio;
     command(display_clock_div);
 
@@ -191,53 +102,53 @@ bool Device::init() {
     int clock_ticks_per_frame = (clock_divide_ratio + 1) * (int) height_ * num_disp_clocks_per_row;
     frequency_ = osc_frequency_value / (float)(clock_ticks_per_frame);
 
-    command(0xa8);         // SSD1306_SETMULTIPLEX
-    command(height_ - 1);  // multiplex ratio: 1/64 or 1/32
-    command(0xd3);         // SSD1306_SETDISPLAYOFFSET
-    command(0x00);         // 0 no display offset (default)
-    command(0x40);         // SSD1306_SETSTARTLINE line #0
+    command(Command::SetMultiplexRatio);        // SSD1306_SETMULTIPLEX
+    command(height_ - 1);                       // multiplex ratio: 1/64 or 1/32
+    command(Command::SetDisplayOffset);         // SSD1306_SETDISPLAYOFFSET
+    command(0x00);                              // 0 no display offset (default)
+    command(static_cast<uint8_t>(Command::SetStartLine) + 0);         // SSD1306_SETSTARTLINE line #0
 
-    if (type_ == SSD1306_128x32) {
-        command(0x8d);  // SSD1306_CHARGEPUMP
+    if (type_ == PanelType::SSD1306_128x32) {
+        command(Command::ChargePumpSetting);
         command(0x14);  // Charge pump on
     }
 
-    command(0x20);  // SSD1306_MEMORYMODE
-    command(0x00);  // 0x0 act like ks0108
-    command(0xa1);  // SSD1306_SEGREMAP | 1
-    command(0xc8);  // SSD1306_COMSCANDEC
-    command(0xda);  // SSD1306_SETCOMPINS
-    if (type_ == SSD1306_128x64) {
+    command(Command::SetMemoryAddressingMode);
+    command(static_cast<uint8_t>(MemoryMode::HorizontalMode));
+    command(Command::SetSegmentRemapInverse);
+    command(Command::SetComOutputScanDec);
+    command(Command::SetComPinsHardwareConfiguration);
+    if (type_ == PanelType::SSD1306_128x64) {
         command(0x12);
-    } else if (type_ == SSD1306_128x32) {
+    } else if (type_ == PanelType::SSD1306_128x32) {
         command(0x02);
     }
 
-    command(0x81);  // SSD1306_SETCONTRAST
-    if (type_ == SSD1306_128x64) {
+    command(Command::SetContrastControl);
+    if (type_ == PanelType::SSD1306_128x64) {
         command(0xcf);
-    } else if (type_ == SSD1306_128x32) {
+    } else if (type_ == PanelType::SSD1306_128x32) {
         command(0x2f);
     }
 
-    command(0xd9);  // SSD1306_SETPRECHARGE
+    command(Command::SetPreChargePeriod);
     command(0xf1);
-    command(0xdb);  // SSD1306_SETVCOMDETECT
+    command(Command::SetVComHDeselectLevel);
     command(0x30);
 
-    if (type_ == SSD1306_128x64) {
-        command(0x8d);  // SSD1306_CHARGEPUMP
+    if (type_ == PanelType::SSD1306_128x64) {
+        command(Command::ChargePumpSetting);
         command(0x14);  // Charge pump on
     }
 
-    command(0x2e);  // SSD1306_DEACTIVATE_SCROLL
-    command(0xa4);  // SSD1306_DISPLAYALLON_RESUME
-    command(0xa6);  // SSD1306_NORMALDISPLAY
+    command(Command::DeactivateScroll);
+    command(Command::EntireDisplayOnResume);
+    command(Command::SetNormalDisplay);
 
     clear();
     refresh(true);
 
-    command(0xaf);  // SSD1306_DISPLAYON
+    command(Command::SetDisplayOn);
 
     return true;
 }
@@ -255,8 +166,8 @@ float Device::frequency() const {
 }
 
 void Device::term() {
-    command(0xae);  // SSD_DISPLAYOFF
-    command(0x8d);  // SSD1306_CHARGEPUMP
+    command(Command::SetDisplayOff);
+    command(Command::ChargePumpSetting);
     command(0x10);  // Charge pump off
 
     if (buffer_) {
@@ -265,18 +176,17 @@ void Device::term() {
     }
 }
 
-uint8_t Device::width() { return width_; }
+uint8_t Device::width() {
+    return width_;
+}
 
-uint8_t Device::height() { return height_; }
+uint8_t Device::height() {
+    return height_;
+}
 
 void Device::clear() {
-    switch (type_) {
-        case SSD1306_128x64:
-            memset(buffer_, 0, 1024);
-            break;
-        case SSD1306_128x32:
-            memset(buffer_, 0, 512);
-            break;
+    if (buffer_size_ > 0) {
+        memset(buffer_, 0, buffer_size_);
     }
 
     markRegion(0, width_ - 1, 0, height_ - 1);
@@ -342,6 +252,10 @@ void Device::markRegion(int x_start, int x_end, int y_start, int y_end) {
     }
 }
 
+void Device::markRegion(const Rectangle& region) {
+    markRegion(region.left, region.right, region.top, region.bottom);
+}
+
 void Device::clearRegions() {
     if (!partial_updates_enabled_) return;
 
@@ -355,18 +269,13 @@ void Device::clearRegions() {
 
 void Device::invertDisplay(bool invert) {
     if (invert)
-        command(0xa7);  // SSD1306_INVERTDISPLAY
+        command(Command::SetInverseDisplay);
     else
-        command(0xa6);  // SSD1306_NORMALDISPLAY
+        command(Command::SetNormalDisplay);
 }
 
 void Device::updateBuffer(uint8_t *data, uint16_t length) {
-    if (type_ == SSD1306_128x64) {
-        memcpy(buffer_, data, (length < 1024) ? length : 1024);
-    } else if (type_ == SSD1306_128x32) {
-        memcpy(buffer_, data, (length < 512) ? length : 512);
-    }
-
+    memcpy(buffer_, data, (length < buffer_size_) ? length : buffer_size_);
     markRegion(0, width_ - 1, 0, height_ - 1);
 }
 
@@ -390,38 +299,23 @@ void Device::refresh() {
 
 void Device::refresh(bool force) {
     if (force) {
-        command(0x21);            // OPCODE: SSD1306_COLUMNADDR
-        command(0);               // column start
-        command(width_ - 1);      // column end
-        command(0x22);            // OPCODE: SSD1306_PAGEADDR
-        command(0);               // page start
-        command(num_pages_ - 1);  // page end
 
-        int k = 0;
+        uint8_t buffer[] = {
+            static_cast<uint8_t>(Command::SetColumnAddress), 0, (uint8_t) (width_ - 1),
+            static_cast<uint8_t>(Command::SetPageAddress), 0, (uint8_t) (num_pages_ -1)
+        };
 
-        while (k < buffer_size_) {
-            i2c->start();
-            i2c->write(address_);
-            i2c->write(0x40);
-
-            int j = 0;
-            while (k < buffer_size_ && j < MAX_I2C_LIST_LEN - 1) {
-                i2c->write(buffer_[k]);
-                ++j;
-                ++k;
-            }
-
-            i2c->stop();
-        }
+        i2c->sendControlBuffer(buffer, sizeof(buffer));
+        i2c->sendDataBuffer(buffer_, buffer_size_);
 
     } else {
         for (int page = 0; page < num_pages_; page++) {
             refreshPage(page, false);
         }
-
-        // reset dirty area
-        clearRegions();
     }
+
+    // reset dirty area
+    clearRegions();
 }
 
 void Device::refreshPage(int page, bool force) {
@@ -444,38 +338,18 @@ void Device::refreshPage(int page, bool force) {
     uint8_t col_start = (uint8_t)page_info.dirty_left;
     uint8_t col_end = (uint8_t)page_info.dirty_right;
 
-    command(0x21);       // SSD1306_COLUMNADDR
-    command(col_start);  // column start
-    command(col_end);    // column end
+    uint8_t buffer[] = {
+        static_cast<uint8_t>(Command::SetColumnAddress), col_start, col_end,
+        static_cast<uint8_t>(Command::SetPageAddress), (uint8_t) page, (uint8_t) page
+    };
 
-    command(0x22);  // SSD1306_PAGEADDR
-    command(page);  // page start
-    command(page);  // page end
+    i2c->sendControlBuffer(buffer, sizeof(buffer));
 
     int page_size = width_;
     int page_offset = page * page_size;
-    int write_counter = 0;
+    size_t bytes_to_send = col_end - col_start + 1;
 
-    for (int j = col_start; j <= col_end; ++j) {
-        if (write_counter == 0) {
-            i2c->start();
-            i2c->write(address_);
-            i2c->write(0x40);
-            ++write_counter;
-        }
-
-        i2c->write(buffer_[page_offset + j]);
-        ++write_counter;
-
-        if (write_counter >= MAX_I2C_LIST_LEN) {
-            i2c->stop();
-            write_counter = 0;
-        }
-    }
-
-    if (write_counter != 0) {  // for last batch if stop was not sent
-        i2c->stop();
-    }
+    i2c->sendDataBuffer(buffer_ + page_offset + col_start, bytes_to_send);
 
     // clear dirty region
     page_info.dirty_left = 255;
@@ -483,16 +357,18 @@ void Device::refreshPage(int page, bool force) {
 }
 
 void Device::startHorizontalScrolling(int start_page, int end_page, bool right, int time_interval) {
-    stopScrolling(); // make sure scrolling is disabled
 
-    command(right ? SSD1306_RIGHT_HORIZONTAL_SCROLL : SSD1306_LEFT_HORIZONTAL_SCROLL, 0x0, start_page, time_interval,
-            end_page, 0x0, 0xff);
+    uint8_t buffer [] = {
+        static_cast<uint8_t>(Command::DeactivateScroll),
+        static_cast<uint8_t>(right ? Command::RightScroll : Command::LeftScroll),
+        0x0, (uint8_t) start_page, (uint8_t) time_interval, (uint8_t) end_page, 0x0, 0xff,
+        static_cast<uint8_t>(Command::ActivateScroll)
+    };
 
-    command(SSD1306_ACTIVATE_SCROLL);
+    i2c->sendControlBuffer(buffer, sizeof(buffer));
 }
 
 void Device::startDiagonalScrolling(int start_page, int end_page, int start_row, int end_row, bool right, int time_interval, int vertical_offset) {
-    stopScrolling(); // make sure scrolling is disabled
 
     int num_rows = end_row - start_row + 1;
     if (num_rows < 0) num_rows = 0;
@@ -501,15 +377,23 @@ void Device::startDiagonalScrolling(int start_page, int end_page, int start_row,
         vertical_offset = num_rows + vertical_offset;
     }
 
-    command(SSD1306_SET_VERTICAL_SCROLL_AREA, start_row, num_rows,
-            right ? SSD1306_VERTICAL_AND_RIGHT_HORIZONTAL_SCROLL : SSD1306_VERTICAL_AND_LEFT_HORIZONTAL_SCROLL,
-            0x0, start_page, time_interval, end_page, vertical_offset);
+    auto c1 = Command::SetVerticalScrollArea;
+    auto c2 = right ? Command::VerticalRightScroll : Command::VerticalLeftScroll;
 
-    command(SSD1306_ACTIVATE_SCROLL);
+    uint8_t buffer[] = {
+        static_cast<uint8_t>(Command::DeactivateScroll),
+        static_cast<uint8_t>(c1),
+        (uint8_t) start_row, (uint8_t) num_rows,
+        static_cast<uint8_t>(c2),
+        0x0, (uint8_t) start_page, (uint8_t) time_interval, (uint8_t) end_page, (uint8_t) vertical_offset,
+        static_cast<uint8_t>(Command::ActivateScroll)
+    };
+
+    i2c->sendControlBuffer(buffer, sizeof(buffer));
 }
 
 void Device::stopScrolling(void) {
-    command(SSD1306_DEACTIVATE_SCROLL);
+    command(Command::DeactivateScroll);
 }
 
 uint8_t* Device::buffer() {

@@ -1,5 +1,5 @@
 //
-// Sim
+// SSD1306 Emulation
 //
 
 #include "sim/ssd1306.h"
@@ -14,7 +14,11 @@ const uint8_t EmuSSD1306::SCROLL_FRAME_INTERVAL[] = {6, 32, 64, 128,
 const uint16_t EmuSSD1306::OSC_FREQUENCY_TABLE[] = {270, 279, 289, 298, 314, 326, 337, 352,
                                                     372, 391, 409, 431, 451, 477, 506, 536};
 
-EmuSSD1306::EmuSSD1306() { reset(); }
+using namespace graphics;
+
+EmuSSD1306::EmuSSD1306() {
+    reset();
+}
 
 void EmuSSD1306::reset() {
     display_on_ = false;
@@ -44,7 +48,7 @@ void EmuSSD1306::reset() {
     display_contrast_ = 0x7f;
 
     display_scroll_enabled_ = false;
-    display_scroll_mode_ = 0x0;
+    display_scroll_mode_ = Command::None;
     display_scroll_time_intervall_ = 0x0;
     display_scroll_page_start_ = 0x0;
     display_scroll_page_end_ = 0x0;
@@ -81,17 +85,15 @@ void EmuSSD1306::requestCommandData(size_t sz) {
     command_buffer_required_ = sz;
 }
 
-void EmuSSD1306::clearCommandData() { requestCommandData(0); }
-
-#define dump_opcode(OPCODE) /* */
-//#define dump_opcode(OPCODE) \
-//printf("OPCODE: %s\n", #OPCODE)
+void EmuSSD1306::clearCommandData() {
+    requestCommandData(0);
+}
 
 void EmuSSD1306::onCommand(const uint8_t* data, size_t data_size) {
 
     if (nullptr == data) {
         clearCommandData();
-        last_command_ = 0x0;
+        last_command_ = Command::None;
         return;
     }
 
@@ -103,88 +105,86 @@ void EmuSSD1306::onCommand(const uint8_t* data, size_t data_size) {
         if (0 == command_buffer_required_) {
 
             // get next command
-            uint8_t command = data[ofs];
+            uint8_t command_byte = data[ofs];
             ofs++; avail--;
 
-            if (command >= 0x40 && command <= 0x7f) {
+            if (command_byte >= 0x40 && command_byte <= 0x7f) {
                 // Set display RAM display start line register from 0-63
-                display_start_line_ = (command & 0x3f);
-                last_command_ = 0x0;
+                display_start_line_ = (command_byte & 0x3f);
+                last_command_ = Command::None;
             } else {
                 clearCommandData();
 
+                auto command = static_cast<Command>(command_byte);
+
                 switch (command) {
-                    case 0x21:  // SSD1306_COLUMNADDR
+                    case Command::SetColumnAddress:
                         requestCommandData(2);
                         break;
-                    case 0x22:  // SSD1306_PAGEADDR
+                    case Command::SetPageAddress:
                         requestCommandData(2);
                         break;
-                    case 0x2f:  // SSD1306_ACTIVATE_SCROLL
-                        dump_opcode(SSD1306_ACTIVATE_SCROLL);
+                    case Command::ActivateScroll:
                         display_scroll_frame_counter_ = 0;
                         display_scroll_enabled_ = true;
                         break;
-                    case 0x2e:  // SSD1306_DEACTIVATE_SCROLL
-                        dump_opcode(SSD1306_DEACTIVATE_SCROLL);
+                    case Command::DeactivateScroll:
                         display_scroll_frame_counter_ = 0;
                         display_scroll_enabled_ = false;
                         break;
-                    case 0x26:  // SSD1306_RIGHT_HORIZONTAL_SCROLL
+                    case Command::RightScroll:
                         requestCommandData(6);
                         break;
-                    case 0x27:  // SSD1306_LEFT_HORIZONTAL_SCROLL
+                    case Command::LeftScroll:
                         requestCommandData(6);
                         break;
-                    case 0x29:  // SSD1306_VERTICAL_AND_RIGHT_HORIZONTAL_SCROLL
+                    case Command::VerticalRightScroll:
                         requestCommandData(5);
                         break;
-                    case 0x2a:  // SSD1306_VERTICAL_AND_LEFT_HORIZONTAL_SCROLL
+                    case Command::VerticalLeftScroll:
                         requestCommandData(5);
                         break;
-                    case 0xa3:  // SSD1306_SET_VERTICAL_SCROLL_AREA
+                    case Command::SetVerticalScrollArea:
                         requestCommandData(2);
                         break;
-                    case 0xa4:  // SSD1306_DISPLAYALLON_RESUME
+                    case Command::EntireDisplayOnResume:
                         break;
-                    case 0xa6:  // SSD1306_NORMALDISPLAY
+                    case Command::SetNormalDisplay:
                         break;
-                    case 0xae:  // SSD1306_DISPLAYOFF
-                        dump_opcode(SSD1306_DISPLAYOFF);
+                    case Command::SetDisplayOff:
                         display_on_ = false;
                         break;
-                    case 0xaf:  // SSD1306_DISPLAYON
-                        dump_opcode(SSD1306_DISPLAYON);
+                    case Command::SetDisplayOn:
                         display_on_ = true;
                         break;
-                    case 0xd5:  // SSD1306_SETDISPLAYCLOCKDIV
+                    case Command::SetDisplayClockDivider:
                         requestCommandData();
                         break;
-                    case 0xa8:  // SSD1306_SETMULTIPLEX
+                    case Command::SetMultiplexRatio:
                         requestCommandData();
                         break;
-                    case 0xd3:  // SSD1306_SETDISPLAYOFFSET
+                    case Command::SetDisplayOffset:
                         requestCommandData();
                         break;
-                    case 0x81:  // SSD1306_SETCONTRAST
+                    case Command::SetContrastControl:
                         requestCommandData();
                         break;
-                    case 0x8d:  // SSD1306_CHARGEPUMP
+                    case Command::ChargePumpSetting:
                         requestCommandData();
                         break;
-                    case 0xd9:  // SSD1306_SETPRECHARGE
+                    case Command::SetPreChargePeriod:
                         requestCommandData();
                         break;
-                    case 0xdb:  // SSD1306_SETVCOMDETECT
+                    case Command::SetVComHDeselectLevel:
                         requestCommandData();
                         break;
-                    case 0x20:  // SSD1306_MEMORYMODE
+                    case Command::SetMemoryAddressingMode:
                         requestCommandData();
                         break;
-                    case 0xa1:  // SSD1306_SEGREMAP
+                    case Command::SetSegmentRemapInverse:
                         requestCommandData();
                         break;
-                    case 0xda:  // SSD1306_SETCOMPINS
+                    case Command::SetComPinsHardwareConfiguration:
                         requestCommandData();
                         break;
                     default:
@@ -209,32 +209,28 @@ void EmuSSD1306::onCommand(const uint8_t* data, size_t data_size) {
 
             if (command_buffer_usage_ >= command_buffer_required_) {
                 switch (last_command_) {
-                    case 0xa8:  // SSD1306_SETMULTIPLEX
+                    case Command::SetMultiplexRatio:
                         display_multiplex_ = command_buffer_[0];
                         alloc();
-                        dump_opcode(SSD1306_SETMULTIPLEX);
                         break;
-                    case 0xd3:  // SSD1306_SETDISPLAYOFFSET
+                    case Command::SetDisplayOffset:
                         display_offset_ = command_buffer_[0];
-                        dump_opcode(SSD1306_SETDISPLAYOFFSET);
                         break;
-                    case 0x20:  // SSD1306_MEMORYMODE
+                    case Command::SetMemoryAddressingMode:
                         display_page_addr_mode_ = command_buffer_[0];
                         break;
-                    case 0x21:  // SSD1306_COLUMNADDR
+                    case Command::SetColumnAddress:
                         display_column_start_ = command_buffer_[0];
                         display_column_end_ = command_buffer_[1];
                         display_column_addr_ = display_column_start_;
                         display_row_addr_ = 0;
-                        dump_opcode(SSD1306_COLUMNADDR);
                         break;
-                    case 0x22:  // SSD1306_PAGEADDR
+                    case Command::SetPageAddress:
                         display_page_start_ = command_buffer_[0];
                         display_page_end_ = command_buffer_[1];
                         display_page_addr_ = display_page_start_;
-                        dump_opcode(SSD1306_PAGEADDR);
                         break;
-                    case 0x26:  // SSD1306_RIGHT_HORIZONTAL_SCROLL
+                    case Command::RightScroll:
                         display_scroll_mode_ = last_command_;
                         display_scroll_page_start_ = command_buffer_[1] & 0b111;
                         display_scroll_time_intervall_ = command_buffer_[2] & 0b111;
@@ -242,7 +238,7 @@ void EmuSSD1306::onCommand(const uint8_t* data, size_t data_size) {
                         display_scroll_vertical_inc_ = 0;
                         display_scroll_vertical_offset_ = 0;
                         break;
-                    case 0x27:  // SSD1306_LEFT_HORIZONTAL_SCROLL
+                    case Command::LeftScroll:
                         display_scroll_mode_ = last_command_;
                         display_scroll_page_start_ = command_buffer_[1] & 0b111;
                         display_scroll_time_intervall_ = command_buffer_[2] & 0b111;
@@ -250,7 +246,7 @@ void EmuSSD1306::onCommand(const uint8_t* data, size_t data_size) {
                         display_scroll_vertical_inc_ = 0;
                         display_scroll_vertical_offset_ = 0;
                         break;
-                    case 0x29:  // SSD1306_VERTICAL_AND_RIGHT_HORIZONTAL_SCROLL
+                    case Command::VerticalRightScroll:
                         display_scroll_mode_ = last_command_;
                         display_scroll_page_start_ = command_buffer_[1] & 0b111;
                         display_scroll_time_intervall_ = command_buffer_[2] & 0b111;
@@ -258,7 +254,7 @@ void EmuSSD1306::onCommand(const uint8_t* data, size_t data_size) {
                         display_scroll_vertical_inc_ = command_buffer_[4] & 0x3f;
                         display_scroll_vertical_offset_ = 0;
                         break;
-                    case 0x2a:  // SSD1306_VERTICAL_AND_LEFT_HORIZONTAL_SCROLL
+                    case Command::VerticalLeftScroll:
                         display_scroll_mode_ = last_command_;
                         display_scroll_page_start_ = command_buffer_[1] & 0b111;
                         display_scroll_time_intervall_ = command_buffer_[2] & 0b111;
@@ -266,15 +262,15 @@ void EmuSSD1306::onCommand(const uint8_t* data, size_t data_size) {
                         display_scroll_vertical_inc_ = command_buffer_[4] & 0x3f;
                         display_scroll_vertical_offset_ = 0;
                         break;
-                    case 0xa3:  // SSD1306_SET_VERTICAL_SCROLL_AREA
+                    case Command::SetVerticalScrollArea:
                         display_scroll_vertical_start_ = command_buffer_[0];
                         display_scroll_vertical_num_ = command_buffer_[1];
                         break;
-                    case 0x81:  // SSD1306_SETCONTRAST
+                    case Command::SetContrastControl:
                         display_contrast_ = command_buffer_[0];
-                    case 0x8d:  // SSD1306_CHARGEPUMP
+                    case Command::ChargePumpSetting:
                         break;
-                    case 0xd5:  // SSD1306_SETDISPLAYCLOCKDIV
+                    case Command::SetDisplayClockDivider:
                     {
                         display_osc_frequency_ = (command_buffer_[0] >> 4);
                         display_clock_divide_ratio_ = (command_buffer_[0] & 0x0f);
@@ -301,7 +297,8 @@ void EmuSSD1306::onCommand(const uint8_t* data, size_t data_size) {
 }
 
 void EmuSSD1306::onData(const uint8_t* data, size_t data_size) {
-    if (0x21 == last_command_ || 0x22 == last_command_) {
+    if (Command::SetColumnAddress == last_command_ ||
+        Command::SetPageAddress == last_command_) {
         // printf("I2C: store data (%d data bytes)\n", (int) data_size);
         store(data, data_size);
     } else {
@@ -310,12 +307,13 @@ void EmuSSD1306::onData(const uint8_t* data, size_t data_size) {
     }
 }
 
-void EmuSSD1306::trap() { display_fault_ = true; }
+void EmuSSD1306::trap() {
+    display_fault_ = true;
+}
 
 void EmuSSD1306::store(const uint8_t* data, size_t data_size) {
     for (auto i = 0; i < data_size; i++) {
-        size_t ofs =
-            display_page_addr_ * display_page_size_ + display_column_addr_;
+        size_t ofs = display_page_addr_ * display_page_size_ + display_column_addr_;
         buffer_[ofs] = *(data++);
 
         if (0x0 == display_page_addr_mode_) {  // Horizontal addressing mode
@@ -327,8 +325,7 @@ void EmuSSD1306::store(const uint8_t* data, size_t data_size) {
                     display_page_addr_ = display_page_start_;
                 }
             }
-        } else if (0x1 ==
-                   display_page_addr_mode_) {  // Vertical addressing mode
+        } else if (0x1 == display_page_addr_mode_) {  // Vertical addressing mode
             display_page_addr_++;
             if (display_page_addr_ > display_page_end_) {
                 display_page_addr_ = display_page_start_;
@@ -347,18 +344,28 @@ void EmuSSD1306::store(const uint8_t* data, size_t data_size) {
     }
 }
 
-const uint8_t* EmuSSD1306::getBuffer() const { return buffer_.data(); }
+const uint8_t* EmuSSD1306::getBuffer() const {
+    return buffer_.data();
+}
 
-size_t EmuSSD1306::getBufferSize() const { return buffer_.size(); }
+size_t EmuSSD1306::getBufferSize() const {
+    return buffer_.size();
+}
+
+int EmuSSD1306::width() const {
+    return (int) display_width_;
+}
+int EmuSSD1306::height() const {
+    return (int) display_height_;
+}
 
 bool EmuSSD1306::getPixel(int x, int y) const {
     if (x < 0 || x >= display_width_ || y < 0 || y >= display_height_) {
         return 0x0;
     }
 
-    if (display_scroll_enabled_ && (display_scroll_mode_ == 0x29 || display_scroll_mode_ == 0x2a)) {
+    if (display_scroll_enabled_ && (display_scroll_mode_ == Command::VerticalRightScroll || display_scroll_mode_ == Command::VerticalLeftScroll)) {
         if (y >= display_scroll_vertical_start_ && y < display_scroll_vertical_start_ + display_scroll_vertical_num_ && display_scroll_vertical_num_ > 0) {
-            // y = display_scroll_vertical_start_ + ((y - display_scroll_vertical_start_ + display_scroll_vertical_offset_) % display_scroll_vertical_num_);
             y = display_scroll_vertical_start_ + ((y - display_scroll_vertical_start_ + display_scroll_vertical_offset_) % display_scroll_vertical_num_);
         }
     }
@@ -410,19 +417,19 @@ void EmuSSD1306::scroll() {
 
     display_scroll_frame_counter_ = 0;
 
-    if (0 != display_scroll_vertical_num_ && (0x29 == display_scroll_mode_ || 0x2a == display_scroll_mode_)) {
+    if (0 != display_scroll_vertical_num_ && (Command::VerticalRightScroll == display_scroll_mode_ || Command::VerticalLeftScroll == display_scroll_mode_)) {
         display_scroll_vertical_offset_ = (display_scroll_vertical_offset_ + display_scroll_vertical_inc_) % display_scroll_vertical_num_;
     }
 
     for (auto page = display_scroll_page_start_; page <= display_scroll_page_end_; page++) {
-        if (0x26 == display_scroll_mode_ || 0x29 == display_scroll_mode_) {
+        if (Command::RightScroll == display_scroll_mode_ || Command::VerticalRightScroll == display_scroll_mode_) {
             uint8_t swap_buffer = buffer_[page * display_page_size_ + 127];
             for (int col = (int) display_page_size_ - 1; col > 0x0; col--) {
                 int ofs = page * display_page_size_ + col;
                 buffer_[ofs] = buffer_[ofs - 1];
             }
             buffer_[page * display_page_size_] = swap_buffer;
-        } else if (0x27 == display_scroll_mode_ || 0x2a == display_scroll_mode_) {
+        } else if (Command::LeftScroll == display_scroll_mode_ || Command::VerticalLeftScroll == display_scroll_mode_) {
             uint8_t swap_buffer = buffer_[page * display_page_size_];
             for (int col = 0x0; col < (int) display_page_size_ - 1; col++) {
                 int ofs = page * display_page_size_ + col;

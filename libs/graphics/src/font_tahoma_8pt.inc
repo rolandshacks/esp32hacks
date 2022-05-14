@@ -1257,7 +1257,7 @@ const uint8_t tahoma_8pt_bitmaps[] = {
 
 /* Character descriptors for Tahoma 8pt */
 /* { [Char width in bits], [Offset into tahoma_8ptCharBitmaps in bytes] } */
-const font_char_desc_t tahoma_descriptors[] = {
+const FontCharDescriptor tahoma_descriptors[] = {
     {1, 0},    /*   */
     {1, 11},   /* ! */
     {3, 22},   /* " */
@@ -1356,7 +1356,7 @@ const font_char_desc_t tahoma_descriptors[] = {
 };
 
 /* Font information for Tahoma 8pt */
-extern const font_t tahoma_8pt_font_info = {
+extern const Font tahoma_8pt_font_info = {
     11,                 /*  Character height */
     1,                  /*  C */
     (uint8_t) ' ',      /*  Start character */

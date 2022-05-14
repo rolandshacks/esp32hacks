@@ -9,7 +9,7 @@
 
 #include "./bitmaps.inc"
 
-const graphics::bitmap_t* bitmaps[] = {
+const graphics::Bitmap* bitmaps[] = {
     &ball0_bitmap,
     &ball1_bitmap,
     &ball2_bitmap,
@@ -28,7 +28,7 @@ class BoingBall : public application::Application {
     void init() {
         LOG_INFO("app", "Boing ball demo - inspired by Amiga CES Demo 1984!");
 
-        setPeriod(20);
+        setPeriod(10);
 
         auto display = getDisplay();                       // get display reference
 
@@ -42,8 +42,8 @@ class BoingBall : public application::Application {
         state_.vy_init = -70.0f;
         state_.a = 0.0f;
         state_.va = 28.0f;
-        state_.max_x = (float) (display->width() - bitmap->width);
-        state_.max_y = (float) (display->height() - bitmap->height);
+        state_.max_x = (float) (display->width() - bitmap->width());
+        state_.max_y = (float) (display->height() - bitmap->height());
 
         display->clear();                                   // clear display
     }
@@ -79,9 +79,9 @@ class BoingBall : public application::Application {
 
         // mark old ball position to fix and refresh the background
         display->device()->markRegion((uint8_t)state_.x,
-                                      (uint8_t)state_.x + bitmap->width,
+                                      (uint8_t)state_.x + bitmap->width(),
                                       (uint8_t)state_.y,
-                                      (uint8_t)state_.y + bitmap->height);
+                                      (uint8_t)state_.y + bitmap->height());
 
         updateState(getDelta());                            // update ball state
 

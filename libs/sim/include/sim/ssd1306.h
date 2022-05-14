@@ -1,4 +1,9 @@
+//
+// SSD1306 Emulation
+//
 #pragma once
+
+#include "graphics/bits.h"
 
 #include <cstdint>
 #include <vector>
@@ -34,9 +39,11 @@ class EmuSSD1306 {
     size_t getBufferSize() const;
     bool getPixel(int x, int y) const;
     uint32_t getCycleTimeMs() const;
+    int width() const;
+    int height() const;
 
    private:
-    uint8_t last_command_{0};
+    graphics::Command last_command_{graphics::Command::None};
     std::vector<uint8_t> command_buffer_;
     size_t command_buffer_required_{0};
     size_t command_buffer_usage_{0};
@@ -67,7 +74,7 @@ class EmuSSD1306 {
     uint8_t display_page_addr_mode_{0};
 
     bool display_scroll_enabled_{false};
-    uint8_t display_scroll_mode_{0};
+    graphics::Command display_scroll_mode_{graphics::Command::None};
     uint8_t display_scroll_time_intervall_{0};
     uint8_t display_scroll_page_start_{0};
     uint8_t display_scroll_page_end_{0};

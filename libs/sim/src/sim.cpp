@@ -9,6 +9,7 @@
 
 #include <chrono>
 #include <thread>
+#include <algorithm>
 
 #include "SDL.h"
 
@@ -130,6 +131,16 @@ bool Sim::update() {
     if (elapsed >= cycle_time_ms) {
         time_last_update_ = now;
         updateDisplay();
+
+        fps_counter_++;
+        if (now - fps_time_ > 5000) {
+            fps_ = fps_counter_ * 1000 / (now - fps_time_);
+            fps_counter_ = 0;
+            fps_time_ = now;
+
+            printf("INFO sim: frames/sec: %d\n", fps_);
+        }
+
     }
 
     return true;
@@ -144,6 +155,55 @@ void Sim::clearDisplay() {
     SDL_UpdateWindowSurface(window_);
 }
 
+void Sim::copyDisplayToSurface(SDL_Surface* surface, bool zoom) {
+    if (nullptr == surface) return;
+
+    if (0 != SDL_LockSurface(surface)) {
+        fprintf(stderr, "lock surface failed: %s\n", SDL_GetError());
+        return;
+    }
+
+    int w = display_emu_->width();
+    int h = display_emu_->height();
+
+    int zoom_factor = zoom ? std::min(surface->w / w, surface->h / h) : 1;
+
+    auto format = surface->format;
+    auto pixels = surface->pixels;
+
+    //uint32_t white_pixel = 0xffffffff;
+    //uint32_t black_pixel = 0x000000ff;
+
+    uint8_t* line = (uint8_t*) pixels;
+
+    for (auto y=0; y<h; y++) {
+        uint8_t* ptr = line;
+
+        for (int j=0; j<zoom_factor; j++) {
+
+            for (auto x=0; x<w; x++) {
+
+                bool pixel = display_emu_->getPixel(x, y);
+                uint8_t intensity = (pixel ? 0xff : 0x0);
+
+                for (int i=0; i<zoom_factor; i++) {
+                    *(ptr+0) = intensity;
+                    *(ptr+1) = intensity;
+                    *(ptr+2) = intensity;
+                    *(ptr+3) = 0xff;
+                    ptr += format->BytesPerPixel;
+                }
+
+            }
+
+            line += surface->pitch;
+        }
+
+    }
+
+    SDL_UnlockSurface(surface);
+}
+
 void Sim::updateDisplay() {
     if (nullptr == window_ || nullptr == screen_surface_ || nullptr == buffer_surface_) {
         return;
@@ -151,34 +211,11 @@ void Sim::updateDisplay() {
 
     SDL_FillRect(screen_surface_, NULL, SDL_MapRGB(screen_surface_->format, 0x08, 0x22, 0x28));
 
-    if (0 != SDL_LockSurface(buffer_surface_)) {
-        fprintf(stderr, "lock surface failed: %s\n", SDL_GetError());
-        return;
-    }
+    /*
+    copyDisplayToSurface(screen_surface_, false);
+    */
 
-    auto format = buffer_surface_->format;
-    auto pixels = buffer_surface_->pixels;
-
-    uint8_t* line = (uint8_t*) pixels;
-
-    for (auto y=0; y<buffer_surface_->h; y++) {
-        uint8_t* ptr = line;
-        for (auto x=0; x<buffer_surface_->w; x++) {
-
-            bool pixel = display_emu_->getPixel(x, y);
-            uint8_t intensity = (pixel ? 0xff : 0x0);
-
-            *(ptr+0) = intensity;
-            *(ptr+1) = intensity;
-            *(ptr+2) = intensity;
-            *(ptr+3) = 0xff;
-
-            ptr += format->BytesPerPixel;
-        }
-        line += buffer_surface_->pitch;
-    }
-
-    SDL_UnlockSurface(buffer_surface_);
+    copyDisplayToSurface(buffer_surface_, false);
 
     SDL_Rect src_rect { 0, 0, buffer_surface_->w, buffer_surface_->h };
 
@@ -204,4 +241,5 @@ void Sim::updateDisplay() {
     }
 
     SDL_UpdateWindowSurface(window_);
+
 }

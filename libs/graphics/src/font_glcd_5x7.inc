@@ -2312,7 +2312,7 @@ const uint8_t glcd_5x7_bitmaps[] = {
 
 /* Character descriptors for glcd 5x7 */
 /* { [Char width in bits], [Offset into glcd_5x7_bitmaps in bytes] } */
-const font_char_desc_t glcd_5x7_descriptors[] = {
+const FontCharDescriptor glcd_5x7_descriptors[] = {
     {5, 0},    /* \x00 */
     {5, 7},    /* \x01 */
     {5, 14},   /* \x02 */
@@ -2572,7 +2572,7 @@ const font_char_desc_t glcd_5x7_descriptors[] = {
 };
 
 /* Font information for glcd 5x7 */
-const font_t glcd_5x7_font_info = {
+const Font glcd_5x7_font_info = {
     7,                    /* Character height */
     1,                    /* C */
     0,                    /* Start character */

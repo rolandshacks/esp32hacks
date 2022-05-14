@@ -6,7 +6,9 @@
 #include <stddef.h>
 #include <stdlib.h>
 
+#include "bits.h"
 #include "base.h"
+
 #include "sys/i2c.h"
 
 namespace graphics {
@@ -30,7 +32,7 @@ class Device {
          * @param   sda_pin  SDA Pin
          * @param   type     Panel type
          */
-        Device(gpio_num_t scl, gpio_num_t sda, panel_type_t type);
+        Device(int scl, int sda, PanelType type);
 
         /**
          * @brief   Constructor
@@ -39,7 +41,7 @@ class Device {
          * @param   type     Panel type
          * @param   address  I2C Address(usually 0x78)
          */
-        Device(gpio_num_t scl, gpio_num_t sda, panel_type_t type, uint8_t address);
+        Device(int scl, int sda, PanelType type, uint8_t address);
         /**
          * @brief   Initialize OLED panel
          * @return  true if successful
@@ -195,44 +197,18 @@ class Device {
         /*!
             @brief  Send command to SSD1306.
             @param  c
+                    Command
+            @return None (void).
+        */
+        void command(Command c);
+
+        /*!
+            @brief  Send command to SSD1306.
+            @param  c
                     Command byte
             @return None (void).
         */
         void command(uint8_t c);
-
-        /*!
-            @brief  Send commands to SSD1306.
-            @param  c0
-                    Command byte
-            @param  c1
-                    Command byte, if < 0 it will not be sent.
-            @param  c2
-                    Command byte, if < 0 it will not be sent.
-            @param  c3
-                    Command byte, if < 0 it will not be sent.
-            @param  c4
-                    Command byte, if < 0 it will not be sent.
-            @param  c5
-                    Command byte, if < 0 it will not be sent.
-            @param  c6
-                    Command byte, if < 0 it will not be sent.
-            @param  c7
-                    Command byte, if < 0 it will not be sent.
-            @param  c8
-                    Command byte, if < 0 it will not be sent.
-            @return None (void).
-        */
-        void command(int c0, int c1, int c2 = -1, int c3 = -1, int c4 = -1, int c5 = -1, int c6 = -1, int c7 = -1, int c8 = -1);
-
-        /*!
-            @brief  Issue list of commands to SSD1306, same rules as above re:
-           transactions.
-            @param  c
-                    Byte sequence
-            @param  n
-                    Number of bytes
-        */
-        void command_list(const uint8_t* c, uint8_t n);
 
         /*!
             @brief  Send data to SSD1306.
@@ -292,6 +268,14 @@ class Device {
         void markRegion(int x_start, int x_end, int y_start, int y_end);
 
         /*!
+            @brief  Mark dirty region
+            @param  region
+                    Dirty region to be marked
+            @return None (void).
+        */
+        void markRegion(const Rectangle& region);
+
+        /*!
             @brief  Clear dirty regions
             @return None (void).
         */
@@ -318,8 +302,7 @@ class Device {
 
     private:
         sys::I2C* i2c;                  // I2C connection
-        panel_type_t type_;             // panel type
-        uint8_t address_;               // I2C address
+        PanelType type_;                // panel type
         uint8_t* buffer_;               // display buffer
         uint16_t buffer_size_;          // display buffer size
         uint8_t width_;                 // panel width (128)

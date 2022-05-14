@@ -1,5 +1,5 @@
 //
-// Application
+// Simulator Application
 //
 #pragma once
 
@@ -19,6 +19,9 @@ class Sim {
     ~Sim();
 
    public:
+    static Sim* instance();
+
+   public:
     int init();
     void restart();
     bool update();
@@ -27,8 +30,11 @@ class Sim {
    private:
     void clearDisplay();
     void updateDisplay();
+    void copyDisplayToSurface(SDL_Surface* surface, bool zoom);
 
    private:
+    static Sim* __instance;
+
     bool running_{false};
     bool error_{false};
 
@@ -40,11 +46,11 @@ class Sim {
     SDL_Surface* screen_surface_{nullptr};
     SDL_Surface* buffer_surface_{nullptr};
 
-   private:
-    static Sim* __instance;
+    int fps_{0};
+    uint64_t fps_counter_{0};
+    uint64_t fps_time_{0};
 
-   public:
-    static Sim* instance();
+   private:
 
    public:
     Sim(const Sim&) = delete;

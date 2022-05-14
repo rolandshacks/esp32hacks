@@ -5,14 +5,29 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Run simulator (debug)",
             "type": "lldb",
             "request": "launch",
-            "name": "Debug",
             "program": "${workspaceFolder}/build/sim.exe",
             "args": [],
             "cwd": "${workspaceFolder}",
             "initCommands": [
                 "type format add -f hex \"unsigned char\"",
+            ]
+        },
+        {
+            "name": "Generate bitmaps (python)",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/tools/bitmap2cpp.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+                "-a",
+                "-o",
+                "bitmaps/main/bitmaps.inc",
+                "bitmaps/res/hello.png",
+                "bitmaps/res/background.png"
             ]
         }
     ]

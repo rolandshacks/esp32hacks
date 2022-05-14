@@ -8,6 +8,7 @@ import getopt
 import png
 
 HEXCHARS = "0123456789abcdef"
+TYPENAME_BITMAP = "graphics::Bitmap"
 
 class Rect:
     def __init__(self, left, top, right, bottom):
@@ -248,7 +249,7 @@ def process(input_file, rect=None, index=None, flag_alpha=False, flag_special_co
 
         y += 1
 
-    name = os.path.splitext(input_file)[0]
+    name = os.path.splitext(os.path.basename(input_file))[0]
 
     s = to_string(name, rect.width, rect.height, bit_rows, flag_alpha, index)
 
@@ -295,15 +296,14 @@ def to_string(name, width, height, data, flag_alpha, index):
     lines.append("};\n")
 
     output_width = len(bitmap_symbol_name) + 4
-
-    lines.append(f"const graphics::bitmap_t {name}_bitmap{appendix} = {{")
+    lines.append(f"const {TYPENAME_BITMAP} {name}_bitmap{appendix} (")
     lines.append(format_txt(f"    {width},", output_width) + "  // width")
     lines.append(format_txt(f"    {height},", output_width) + "  // height")
     lines.append(format_txt(f"    {has_alpha},", output_width) + "  // true if alpha channel")
     lines.append(format_txt(f"    {bytes_per_line},", output_width) + "  // bytes per line")
     lines.append(format_txt(f"    {bitmap_size},", output_width) + "  // bitmap size")
     lines.append(format_txt(f"    {bitmap_symbol_name}", output_width) + "  // pixel data")
-    lines.append("};")
+    lines.append(");")
     lines.append("\n")
 
     s = "\n".join(lines)
@@ -325,10 +325,11 @@ def save(filename, content):
         text_file.write(content)
 
 def usage():
-    print("Usage  : bitmap2cpp INPUT OUTPUT")
+    print("Usage: bitmap2cpp [-a|--alpha] -o output input...")
     print("")
-    print("INPUT  : Input image file. Currently, only the PNG file format is supported")
-    print("OUTPUT : C++ source file to be generated")
+    print("-a, --alpha     : Enable alpha channel")
+    print("-o              : Filename of C++ source file to be generated")
+    print("INPUT           : PNG input files")
 
 def main():
 

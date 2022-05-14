@@ -87,6 +87,7 @@ class HelloGraphics : public application::Application {
     }
 
     void update() override {
+
         auto display = getDisplay();  // get display reference
 
         display->clear();  // clear display (ignore locked areas)
@@ -109,6 +110,7 @@ class HelloGraphics : public application::Application {
         }
 
         display->update();  // refresh display
+
     }
 
    private:

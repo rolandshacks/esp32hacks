@@ -24,7 +24,7 @@ static void __milli_sleep(uint32_t millis) {
     }
 }
 
-TickType_t ticks_offset = 0;
+static TickType_t ticks_offset = 0;
 
 volatile TickType_t xTaskGetTickCount(void) {
     TickType_t ticks =
