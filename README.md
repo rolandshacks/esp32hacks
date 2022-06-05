@@ -48,7 +48,7 @@ rates using memory page locking.
 Some well known elements of retro demos, such as scrolling text, copper bars,
 zooming bitmaps and a nice 3D starfield as found on home computers of the 80s.
 
-### 3D Demo
+### Graphics 3D
 
 Shows real-time shaded 3D graphics on monochrome display using stationary
 dithering for triangle rasterization based on a simplified error diffusion

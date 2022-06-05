@@ -33,6 +33,13 @@ static const uint8_t dither_seed[] = { // pre-randomize 256 8-bit integers
     254,229,56,165,97,190,2
 };
 
+static const uint8_t bayer_matrix[] = { // 4x4 bayer matrix for 16 palette entries
+    0, 8, 2, 10,
+    12, 4, 14, 6,
+    3, 11, 1, 9,
+    15, 7, 13, 5
+};
+
 // ############################################################################
 // Generic methods
 // ############################################################################
@@ -890,8 +897,26 @@ void Display::lockPage(int page, bool lock) {
 // Advanced rendering support
 // ############################################################################
 
+void Display::enableUnorderedDithering(bool enable) {
+    unordered_dithering_ = enable;
+}
+
 int Display::getDitheredColor(int x, int y, int intensity) {
-    int r =  dither_seed[((x + 13) * (y + 17))%256];
+
+    if (intensity == 0) return 0;
+    if (intensity >= 255) return 1;
+
+    int r;
+
+    if (unordered_dithering_) {
+        // unordered dithering
+        r =  dither_seed[((x + 13) * (y + 17))%256];
+    } else {
+        // ordered dithering
+        r = bayer_matrix[((y&0x3)<<2) + (x&0x3)] << 4;
+    }
+
+
     return (intensity >= r) ? 1 : 0;
 }
 

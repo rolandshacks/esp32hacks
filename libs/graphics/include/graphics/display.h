@@ -432,7 +432,7 @@ class Display {
          * @param   intensity   Color intensity (0..255)
          * @return  Returns 1 in case the pixel should be drawn and 0 otherwise
          */
-        static int getDitheredColor(int x, int y, int intensity);
+        int getDitheredColor(int x, int y, int intensity);
 
         /**
          * @brief   Draw dithered horizontal line
@@ -468,6 +468,8 @@ class Display {
 
         void fillDitheredTriangle(int x1, int y1, int x2, int y2, int x3, int y3, int intensity);
 
+        void enableUnorderedDithering(bool enable);
+
     private:
         Device* device_{nullptr};                             // display device;
         uint8_t width_{0};                                    // panel width (128)
@@ -477,6 +479,9 @@ class Display {
         bool deferred_update_{false};                         // deferred update
         Color foreground_{WHITE};                             // foreground color
         Color background_{BLACK};                             // background color
+
+    private:
+        bool unordered_dithering_{false};                     // unordered dithering
 
     public:
         Display(const Display&) = delete;

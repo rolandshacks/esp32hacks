@@ -433,7 +433,7 @@ void Renderer::drawDitheredHorizontalLine(int x, int y, float z1, int x2, float 
         }
 
         if (z_new >= z_old) {
-            auto col = graphics::Display::getDitheredColor(x, y, intensity) ? graphics::Color::WHITE : graphics::Color::BLACK;
+            auto col = display_->getDitheredColor(x, y, intensity) ? graphics::Color::WHITE : graphics::Color::BLACK;
             buffer[index] = z_new | ((col != 0) ? 0x8000 : 0x0);
         }
 

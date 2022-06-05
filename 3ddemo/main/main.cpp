@@ -35,8 +35,8 @@ class Graphics3D : public application::Application {
         display->clear();                                       // clear display (ignore locked areas)
 
         auto delta = this->getDelta();
-        mesh_.rotate({1.17f*delta, 2.37f*delta, 0.0f});         // update rotation angles
-        renderer_.drawMesh(&mesh_, true);                       // draw 3D mesh
+        mesh_.rotate({1.23f*delta, 2.47f*delta, 0.0f});         // update rotation angles
+        renderer_.drawMesh(&mesh_, false);                       // draw 3D mesh
         renderer_.update();                                     // update render buffers
 
         display->update();                                      // update screen

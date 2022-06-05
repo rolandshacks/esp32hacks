@@ -4,7 +4,7 @@ project(sim C CXX)
 ###################################################################################################
 # Specify the application class name of the example to be started:
 # Hello HelloGraphics BitmapDemo ScrollingDemo OscilloscopeDemo BoingBall Graphics3D RetroDemo
-set (ACTIVE_EXAMPLE RetroDemo)
+set (ACTIVE_EXAMPLE Graphics3D)
 ###################################################################################################
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
